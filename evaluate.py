@@ -1,12 +1,9 @@
-from pickle import load
-from numpy import array
 from numpy import argmax
 from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
 from keras.models import load_model
 from nltk.translate.bleu_score import corpus_bleu
 
-
+from helpers import *
 
 # map an integer to a word
 def word_for_id(integer, tokenizer):
@@ -18,6 +15,10 @@ def word_for_id(integer, tokenizer):
 
 # generate target given source sequence
 def predict_sequence(model, tokenizer, source):
+    """
+
+    :type tokenizer: Tokenizer
+    """
     prediction = model.predict(source, verbose=0)[0]
     integers = [argmax(vector) for vector in prediction]
     target = list()
@@ -35,9 +36,9 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
     for i, source in enumerate(sources):
         # translate encoded source text
         source = source.reshape((1, source.shape[0]))
-        translation = predict_sequence(model, eng_tokenizer, source)
+        translation = predict_sequence(model, tokenizer, source)
         raw_target, raw_src = raw_dataset[i]
-        if i < 10:
+        if i < 20:
             print('src=[%s], target=[%s], predicted=[%s]' % (raw_src, raw_target, translation))
         actual.append(raw_target.split())
         predicted.append(translation.split())
@@ -48,7 +49,6 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
     print('BLEU-4: %f' % corpus_bleu(actual, predicted, weights=(0.25, 0.25, 0.25, 0.25)))
 
 
-lang2 = 'sve'
 # load datasets
 dataset = load_clean_sentences('eng-' + lang2 + '-both.pkl')
 train = load_clean_sentences('eng-' + lang2 + '-train.pkl')
