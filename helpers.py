@@ -5,7 +5,8 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
 from numpy import array
-from punct_tokenizer import PunctTokenizer
+from nltk.stem import  WordNetLemmatizer
+
 
 import unicodedata
 import re
@@ -43,7 +44,9 @@ def create_tokenizer_simple(lines) -> Tokenizer:
 
 
 def prepare_lines(lines) -> list:
-    """ Inelegant way to preserve punctuation """
+    """ Inelegant way to preserve punctuation 
+    :type lang: str
+    """
     regex = re.compile(r"([.?,!])")
     res = list()
     for line in lines:
@@ -51,6 +54,19 @@ def prepare_lines(lines) -> list:
         line = regex.sub(" \g<1>", line)
         res.append(line)
     return res
+
+def is_proper(word, lang):
+    return False #TODO
+
+def lemmatize_verbs(words):
+    """Lemmatize verbs in list of tokenized words"""
+    lemmatizer = WordNetLemmatizer()
+    lemmas = []
+    for word in words:
+        lemma = lemmatizer.lemmatize(word, pos='v')
+        lemmas.append(lemma)
+    return lemmas
+
 
 
 # max sentence length

@@ -1,0 +1,10 @@
+keras
+tensorflow
+pymongo
+pickle
+numpy
+requests
+json
+unicodedata
+unittest
+nltk
