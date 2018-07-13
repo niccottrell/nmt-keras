@@ -43,7 +43,7 @@ def create_tokenizer_simple(lines) -> Tokenizer:
     return tokenizer
 
 
-def prepare_lines(lines) -> list:
+def prepare_lines(lines, lang='en', lc_first='never') -> list:
     """ Inelegant way to preserve punctuation 
     :type lang: str
     """
@@ -52,7 +52,18 @@ def prepare_lines(lines) -> list:
     for line in lines:
         # add spaces before punctuation
         line = regex.sub(" \g<1>", line)
-        res.append(line)
+        # language-specific fixes
+        if (lang is 'en'):
+            line = re.sub(r'\'m\s+', ' am ', line)
+            line = re.sub(r'\b(s?he|it)\'s\s+', r'\1 is ', line, flags=re.IGNORECASE)
+            line = re.sub(r'(\w+)\'s\s+', r" \1 's ", line)
+            line = re.sub(r'\'re\s+', ' are ', line)
+        line = re.sub(r'\s+', ' ', line)
+        # tokenize on space
+        # TODO
+        # lowercase if found in dictionary
+        # TODO
+        res.append(line.strip())
     return res
 
 def is_proper(word, lang):
