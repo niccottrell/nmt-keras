@@ -25,7 +25,10 @@ wget https://cgit.freedesktop.org/libreoffice/dictionaries/plain/sv_SE/sv_SE.dic
 wget http://stp.lingfil.uu.se/~bea/resources/hunpos/suc-suctags.model.gz
 gunzip suc-suctags.model.gz
 ```
-
+```
+wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/hunpos/en_wsj.model.gz
+gunzip en_wsj.model.gz
+```
 ## Install Python packages
 
 Use pip to read from requirements.txt
@@ -64,6 +67,14 @@ pip install --upgrade pip setuptools
 
 https://cgit.freedesktop.org/libreoffice/dictionaries/tree/sv_SE/sv_SE.dic
 https://cgit.freedesktop.org/libreoffice/dictionaries/tree/en/en_US.dic
+
+# Libraries used
+
+## Pyphen
+
+Pyphen is a pure Python module to hyphenate text using included or external Hunspell hyphenation dictionaries.
+
+http://pyphen.org/
 
 
 Check version:

@@ -16,6 +16,7 @@ import unicodedata
 import re
 import nltk
 import string
+import pyphen
 
 nltk.download('averaged_perceptron_tagger')
 
@@ -64,9 +65,9 @@ def pos_tag(line, lang='en'):
         if tuple[0] in set(string.punctuation):  # It's just punctuation
             result.append(tuple[0])
         else:
-            pos = tuple[1]
-            if (isinstance(pos, (bytes, bytearray))): pos = pos.decode('utf-8')
-            result.append(tuple[0] + "." + pos[:2]) # Only take the first 2 letters of the POS, e.g. 'NN_UTR_SIN_DEF_NOM' -> 'NN'
+            pos = tuple[1].decode('utf-8')
+            result.append(
+                tuple[0] + "." + pos[:2])  # Only take the first 2 letters of the POS, e.g. 'NN_UTR_SIN_DEF_NOM' -> 'NN'
     return result
 
 
@@ -77,10 +78,12 @@ def do_pos_tag(lang, line):
     """
     iso3 = ('sve' if lang[:2] == 'sv' else 'eng')
     if (iso3 == 'eng'):
-        tuples = nltk.tag.pos_tag(line, lang=iso3)
-    else: # Swedish
-        ht = HunposTagger('suc-suctags.model', path_to_bin='./hunpos-tag')
-        tuples = ht.tag(line)
+        # tuples = nltk.tag.pos_tag(line, lang=iso3)
+        model = 'en_wsj.model'
+    else:  # Swedish
+        model = 'suc-suctags.model'
+    ht = HunposTagger(model, path_to_bin='./hunpos-tag')
+    tuples = ht.tag(line)
     return tuples
 
 
@@ -118,7 +121,7 @@ def is_capitalized(word):
 
 def is_noun(word, lang):
     tuples = do_pos_tag(lang, [word])
-    pos = tuples[0][1]
+    pos = tuples[0][1].decode('utf-8')
     return True if pos[0] == 'N' else False
 
 
@@ -132,6 +135,15 @@ def is_in_dict(word, lang):
     else:
         raise Exception("Do not support language: " + lang)
     return hobj.spell(word)
+
+
+def hyphenate(word, lang):
+    if (lang == 'sv'):
+        dic = pyphen.Pyphen(lang='sv_SE')
+    else:
+        dic = pyphen.Pyphen(lang='en_US')
+    sep = '$'
+    return dic.inserted(word, hyphen=sep).split(sep)
 
 
 def lemmatize_verbs(words):
