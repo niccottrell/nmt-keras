@@ -58,12 +58,12 @@ eng_tokenizer = create_tokenizer(dataset[:, 0])
 eng_vocab_size = len(eng_tokenizer.word_index) + 1
 eng_length = max_length(dataset[:, 0])
 # prepare german tokenizer
-ger_tokenizer = create_tokenizer(dataset[:, 1])
-ger_vocab_size = len(ger_tokenizer.word_index) + 1
-ger_length = max_length(dataset[:, 1])
+other_tokenizer = create_tokenizer(dataset[:, 1])
+other_vocab_size = len(other_tokenizer.word_index) + 1
+other_length = max_length(dataset[:, 1])
 # prepare data
-trainX = encode_sequences(ger_tokenizer, ger_length, train[:, 1])
-testX = encode_sequences(ger_tokenizer, ger_length, test[:, 1])
+trainX = encode_sequences(other_tokenizer, other_length, train[:, 1])
+testX = encode_sequences(other_tokenizer, other_length, test[:, 1])
 
 # load model
 model = load_model('model.h5')
