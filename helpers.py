@@ -5,11 +5,19 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
 from numpy import array
-from nltk.stem import  WordNetLemmatizer
 
+from nltk.stem import WordNetLemmatizer
+from nltk.tag.hunpos import HunposTagger
 
+from os.path import expanduser
+
+import hunspell
 import unicodedata
 import re
+import nltk
+import string
+
+nltk.download('averaged_perceptron_tagger')
 
 lang2 = 'sve'
 
@@ -30,11 +38,12 @@ def save_clean_data(sentences, filename):
     print('Saved {0} to {1}'.format(sentences.shape, filename))
 
 
-# fit a tokenizer
+# create a tokenizer
 def create_tokenizer(lines) -> Tokenizer:
     return create_tokenizer_simple(lines)
 
 
+# Tokenize lines on spaces (not preserved) - don't lowercase, but filter out most punctuation, tabs and newlines
 def create_tokenizer_simple(lines) -> Tokenizer:
     tokenizer = Tokenizer(
         filters='"#$%&()*+-/:;<=>@[\\]^_`{|}~\t\n',
@@ -43,7 +52,39 @@ def create_tokenizer_simple(lines) -> Tokenizer:
     return tokenizer
 
 
-def prepare_lines(lines, lang='en', lc_first='never') -> list:
+#
+def pos_tag(line, lang='en'):
+    """
+
+    :type line: list
+    """
+    tuples = do_pos_tag(lang, line)
+    result = []
+    for tuple in tuples:
+        if tuple[0] in set(string.punctuation):  # It's just punctuation
+            result.append(tuple[0])
+        else:
+            pos = tuple[1]
+            if (isinstance(pos, (bytes, bytearray))): pos = pos.decode('utf-8')
+            result.append(tuple[0] + "." + pos[:2]) # Only take the first 2 letters of the POS, e.g. 'NN_UTR_SIN_DEF_NOM' -> 'NN'
+    return result
+
+
+def do_pos_tag(lang, line):
+    """
+
+    :type line: list(str)
+    """
+    iso3 = ('sve' if lang[:2] == 'sv' else 'eng')
+    if (iso3 == 'eng'):
+        tuples = nltk.tag.pos_tag(line, lang=iso3)
+    else: # Swedish
+        ht = HunposTagger('suc-suctags.model', path_to_bin='./hunpos-tag')
+        tuples = ht.tag(line)
+    return tuples
+
+
+def prepare_lines(lines, lang='en', lc_first=None) -> list:
     """ Inelegant way to preserve punctuation 
     :type lang: str
     """
@@ -60,14 +101,38 @@ def prepare_lines(lines, lang='en', lc_first='never') -> list:
             line = re.sub(r'\'re\s+', ' are ', line)
         line = re.sub(r'\s+', ' ', line)
         # tokenize on space
-        # TODO
+        words = line.split(' ')
         # lowercase if found in dictionary
-        # TODO
-        res.append(line.strip())
+        if lc_first == 'lookup' and is_in_dict(words[0], lang): words[0] = words[0].lower()
+        res.append(' '.join(words).strip())
     return res
 
+
 def is_proper(word, lang):
-    return False #TODO
+    return is_capitalized(word) and not is_in_dict(word, lang)  # or is_noun(word, lang))
+
+
+def is_capitalized(word):
+    return True if word[0] == word[0].upper() else False
+
+
+def is_noun(word, lang):
+    tuples = do_pos_tag(lang, [word])
+    pos = tuples[0][1]
+    return True if pos[0] == 'N' else False
+
+
+def is_in_dict(word, lang):
+    home = expanduser("~")
+    path = home + '/Library/Spelling/'
+    if (lang == 'en'):
+        hobj = hunspell.HunSpell(path + 'en_US.dic', path + 'en_US.aff')
+    elif (lang == 'sv'):
+        hobj = hunspell.HunSpell(path + 'sv_SE.dic', path + 'sv_SE.aff')
+    else:
+        raise Exception("Do not support language: " + lang)
+    return hobj.spell(word)
+
 
 def lemmatize_verbs(words):
     """Lemmatize verbs in list of tokenized words"""
@@ -77,7 +142,6 @@ def lemmatize_verbs(words):
         lemma = lemmatizer.lemmatize(word, pos='v')
         lemmas.append(lemma)
     return lemmas
-
 
 
 # max sentence length

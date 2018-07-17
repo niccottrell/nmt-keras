@@ -2,6 +2,35 @@
 
 This is a test for NMT using Keras
 
+# Environment
+
+## Install Conda
+
+## Install hunspell and dictionaries
+
+### On Mac
+
+```
+brew install hunspell
+cd ~/Library/Spelling
+wget http://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.aff
+wget http://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
+wget https://cgit.freedesktop.org/libreoffice/dictionaries/plain/sv_SE/sv_SE.aff
+wget https://cgit.freedesktop.org/libreoffice/dictionaries/plain/sv_SE/sv_SE.dic
+```
+
+### Install POS-Tagging for Swedish
+
+```
+wget http://stp.lingfil.uu.se/~bea/resources/hunpos/suc-suctags.model.gz
+gunzip suc-suctags.model.gz
+```
+
+## Install Python packages
+
+Use pip to read from requirements.txt
+
+
 Initial code from https://machinelearningmastery.com/develop-neural-machine-translation-system-keras/
 
 Download content at http://www.manythings.org/anki/swe-eng.zip
@@ -29,6 +58,12 @@ e.g. https://developer.nvidia.com/compute/cuda/9.1/Prod/network_installers/cuda_
 On mac
 brew cask install nvidia-cuda
 pip install --upgrade pip setuptools
+
+
+# Download dictionaries
+
+https://cgit.freedesktop.org/libreoffice/dictionaries/tree/sv_SE/sv_SE.dic
+https://cgit.freedesktop.org/libreoffice/dictionaries/tree/en/en_US.dic
 
 
 Check version:
@@ -136,6 +171,9 @@ old ́oszer gyu ̋jto ̋doboz forgalombahozatali  ́edes ́ıto ̋szerk ́ent k 
 https://github.com/lvapeab/nmt-keras
 
 
+Useful tools
+https://bitbucket.org/fhaxbox66/pyhyphen
+https://cran.r-project.org/web/packages/hunspell/vignettes/intro.html
 
 # Papers
 

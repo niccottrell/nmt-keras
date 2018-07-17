@@ -3,6 +3,26 @@ from helpers import *
 
 class TokenizerTests(unittest.TestCase):
 
+    def test_is_in_dict(self):
+        self.assertTrue(is_in_dict('dog', 'en'))
+        self.assertFalse(is_in_dict('doog', 'en'))
+        self.assertTrue(is_in_dict('dog', 'sv'))
+        self.assertTrue(is_in_dict('dög', 'sv'))
+        self.assertFalse(is_in_dict('dug', 'sv'))
+
+    def test_is_proper_sv(self):
+        # Yakuhako is a made up string
+        self.assertTrue(is_proper('Yakuhako', 'sv'))
+        # dog (Swedish) == dead (English) so it exists but is not a noun
+        self.assertFalse(is_noun('dog', 'sv'))
+        self.assertFalse(is_proper('dog', 'sv'))
+        self.assertFalse(is_proper('Dog', 'sv'))
+
+    def test_is_proper_en(self):
+        self.assertTrue(is_noun('dog', 'en'))
+        self.assertFalse(is_proper('dog', 'en'))
+        self.assertFalse(is_proper('Dog', 'en'))  # Even though it's capitalized
+
     def test_prepare1(self):
         self.assertEqual(['The dog barked .'], prepare_lines(['The dog barked.'], lang='en'))
         self.assertEqual(['The dog barked !'], prepare_lines(['The dog barked!'], lang='en'))
@@ -35,11 +55,19 @@ class TokenizerTests(unittest.TestCase):
         res_list = self.tokenize('The dog, and the puppy, barked at the other dog.')
         self.assertEqualSet(['The', 'dog', ',', 'and', 'puppy', 'barked', 'at', 'the', 'other', '.'], res_list)
 
+    def test_pos_tag_en(self):
+        res_list = pos_tag(['The', 'dog', ',', 'and', 'puppy', 'barked', 'at', 'the', 'other', 'dog'])
+        self.assertEqual(['The.DT', 'dog.NN', ',', 'and.CC', 'puppy.NN', 'barked.VBN', 'at.IN', 'the.DT', 'other.JJ', 'dog.NN'], res_list)
+
+    def test_pos_tag_sv(self):
+        res_list = pos_tag(['Hunden', 'och', 'valpen', 'barkade', 'på', 'den', 'andra', 'hunden', '.'], lang='sv')
+        self.assertEqual(['Hunden.NN', 'och.KN', 'valpen.NN', 'barkade.VB', 'på.PP', 'den.DT', 'andra.JJ', 'hunden.NN', '.'], res_list)
+
     def assertEqualSet(self, list1, list2):
         self.assertEqual(set(list1), set(list2))
 
     def tokenize(self, tr, lang='en', lc_first=None):
-        prepared = prepare_lines([tr])
+        prepared = prepare_lines([tr], lang, lc_first)
         res = create_tokenizer_simple(prepared)
         res_list = list(res.word_index.keys())
         if (lc_first == 'lookup'):

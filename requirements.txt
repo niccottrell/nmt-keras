@@ -4,3 +4,4 @@ pymongo
 numpy
 requests
 nltk
+hunspell
