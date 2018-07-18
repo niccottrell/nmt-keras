@@ -53,11 +53,10 @@ def create_tokenizer_simple(lines) -> Tokenizer:
     return tokenizer
 
 
-#
 def pos_tag(line, lang='en'):
     """
 
-    :type line: list
+    :type line: list(str)
     """
     tuples = do_pos_tag(lang, line)
     result = []
@@ -73,7 +72,7 @@ def pos_tag(line, lang='en'):
 
 def do_pos_tag(lang, line):
     """
-
+    Append part-of-speech tags to each word
     :type line: list(str)
     """
     iso3 = ('sve' if lang[:2] == 'sv' else 'eng')
@@ -160,6 +159,18 @@ def lemmatize_verbs(words):
 def max_length(lines):
     return max(len(line.split()) for line in lines)
 
+
+def word_for_id(integer, tokenizer):
+    """
+    map an integer to a word
+    :param integer: the index assigned to the word during initial discovery
+    :param tokenizer: the tokenizer used
+    :return: the original word with this index
+    """
+    for word, index in tokenizer.word_index.items():
+        if index == integer:
+            return word
+    return None
 
 # encode and pad sequences
 def encode_sequences(tokenizer, length, lines):
