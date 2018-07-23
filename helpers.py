@@ -58,13 +58,16 @@ def create_tokenizer_simple(lines) -> Tokenizer:
 
 def simple_lines(lines, lang='en'):
     """
-    Tokenize lines by whitespace
+    Tokenize lines by whitespace but discard whitespace
     :param lines: list(str)
     :return: list(list(str)
     """
+    from nltk.tokenize import WordPunctTokenizer
+    wpt = WordPunctTokenizer() # See http://text-processing.com/demo/tokenize/ for examples
     tokenized_lines = []
     for line in lines:
-        tokenized_lines.append(line.split(' '))
+        # tokenized_lines.append(line.split(' '))
+        tokenized_lines.append(wpt.tokenize(line))
     return tokenized_lines
 
 

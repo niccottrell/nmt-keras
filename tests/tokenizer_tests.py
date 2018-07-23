@@ -6,6 +6,12 @@ pos_tagged_en = ['The.DT', 'dog.NN', ',', 'and.CC', 'the.DT', 'puppy.NN', 'barke
 
 class TokenizerTests(unittest.TestCase):
 
+    def test_simple_lines(self):
+        self.assertEqual([["Good", "muffins", "cost", "$", "3", ".", "88", "in", "New", "York", "."]],
+                         simple_lines(["Good muffins cost $3.88\nin New York."], 'en'))
+        self.assertEqual([["Good", "muffins", "cost", "$", "3", ".", "88", "in", "New", "York", "!"]],
+                         simple_lines(["Good muffins cost $3.88 in New York !"], 'en'))
+
     def test_is_in_dict(self):
         self.assertTrue(is_in_dict('dog', 'en'))
         self.assertFalse(is_in_dict('doog', 'en'))
@@ -91,7 +97,8 @@ class TokenizerTests(unittest.TestCase):
 
     def test_word2phrase_lines(self):
         self.assertEqual([['Hat']], word2phrase_lines(['Hat'], lang='en'))
-        self.assertEqual([['The', 'cat', 'in', 'the', 'hat', '.']], word2phrase_lines(['The cat in the hat .'], lang='en'))
+        self.assertEqual([['The', 'cat', 'in', 'the', 'hat', '.']],
+                         word2phrase_lines(['The cat in the hat .'], lang='en'))
 
     def assertEqualSet(self, list1, list2):
         self.assertEqual(set(list1), set(list2))
