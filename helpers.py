@@ -18,6 +18,8 @@ import nltk
 import string
 import pyphen
 
+from models import *
+
 nltk.download('averaged_perceptron_tagger')
 
 lang2 = 'sve'
@@ -48,14 +50,14 @@ def create_tokenizer(lines) -> Tokenizer:
 def create_tokenizer_simple(lines) -> Tokenizer:
     tokenizer = Tokenizer(
         filters='"#$%&()*+-/:;<=>@[\\]^_`{|}~\t\n',
-        lower=False)  # Since in German case has significance
+        lower=False)  # Since in German (at least) case has significance; In English, it tends to indicate Proper nouns
     tokenizer.fit_on_texts(lines)
     return tokenizer
 
 
 def pos_tag(line, lang='en'):
     """
-
+    Append part-of-speech tags to each word, keeping the units as a list
     :type line: list(str)
     """
     tuples = do_pos_tag(lang, line)
@@ -72,7 +74,7 @@ def pos_tag(line, lang='en'):
 
 def do_pos_tag(lang, line):
     """
-    Append part-of-speech tags to each word
+    Do POS-tagging but return tuples for each input word
     :type line: list(str)
     """
     iso3 = ('sve' if lang[:2] == 'sv' else 'eng')
@@ -86,28 +88,51 @@ def do_pos_tag(lang, line):
     return tuples
 
 
+def do_word2phrase(lines, lang='en'):
+    """
+    Convert all inputs to chunked phrases
+    :param lines: list(str)
+    :param lang: str The language code (but ignored for now)
+    :return: list(str)
+    """
+    result = []
+    from thirdparty.word2phrase import train_model
+    model = train_model(lines)  # Uses defaults since we're assuming a large (>>1000 lines) input
+    for row in model:
+        result.append(row)
+    return result
+
+
+regex_endpunct = re.compile(r"([.?,!])")
+
+
 def prepare_lines(lines, lang='en', lc_first=None) -> list:
     """ Inelegant way to preserve punctuation 
     :type lang: str
     """
-    regex = re.compile(r"([.?,!])")
     res = list()
     for line in lines:
-        # add spaces before punctuation
-        line = regex.sub(" \g<1>", line)
-        # language-specific fixes
-        if (lang is 'en'):
-            line = re.sub(r'\'m\s+', ' am ', line)
-            line = re.sub(r'\b(s?he|it)\'s\s+', r'\1 is ', line, flags=re.IGNORECASE)
-            line = re.sub(r'(\w+)\'s\s+', r" \1 's ", line)
-            line = re.sub(r'\'re\s+', ' are ', line)
-        line = re.sub(r'\s+', ' ', line)
-        # tokenize on space
-        words = line.split(' ')
-        # lowercase if found in dictionary
-        if lc_first == 'lookup' and is_in_dict(words[0], lang): words[0] = words[0].lower()
-        res.append(' '.join(words).strip())
+        rejoined = prepare_line(line, lang, lc_first)
+        res.append(rejoined)
     return res
+
+
+def prepare_line(line, lang='en', lc_first=None):
+    # add spaces before punctuation
+    line = regex_endpunct.sub(" \g<1>", line)
+    # language-specific fixes
+    if (lang is 'en'):
+        line = re.sub(r'\'m\s+', ' am ', line)
+        line = re.sub(r'\b(s?he|it)\'s\s+', r'\1 is ', line, flags=re.IGNORECASE)
+        line = re.sub(r'(\w+)\'s\s+', r" \1 's ", line)
+        line = re.sub(r'\'re\s+', ' are ', line)
+    line = re.sub(r'\s+', ' ', line)
+    # tokenize on space
+    words = line.split(' ')
+    # lowercase if found in dictionary
+    if lc_first == 'lookup' and is_in_dict(words[0], lang): words[0] = words[0].lower()
+    rejoined = ' '.join(words).strip()
+    return rejoined
 
 
 def is_proper(word, lang):
@@ -137,12 +162,45 @@ def is_in_dict(word, lang):
 
 
 def hyphenate(word, lang):
+    """
+    Hyphenates a single word
+    :param word:
+    :param lang:
+    :return:
+    """
     if (lang == 'sv'):
         dic = pyphen.Pyphen(lang='sv_SE')
     else:
         dic = pyphen.Pyphen(lang='en_US')
     sep = '$'
     return dic.inserted(word, hyphen=sep).split(sep)
+
+
+def hyphenate_lines(lines, lang):
+    """
+    Hyphenate all lines and wrap in a tokenizer
+    :param lines: list(str)
+    :param lang: the 2-letter language code
+    :return: list(list(str))
+    """
+    if (lang == 'sv'):
+        dic = pyphen.Pyphen(lang='sv_SE')
+    else:
+        dic = pyphen.Pyphen(lang='en_US')
+    sep = '$'
+    hyphenated_lines = []
+    for line in lines:
+        next_line = []
+        words = line.split(' ')
+        for idx, word in enumerate(words):
+            word_hyphenated = dic.inserted(word, hyphen=sep)
+            parts = word_hyphenated.split(sep)
+            for part in parts:
+                next_line.append(part)
+            if (idx + 1) < len(words):
+                next_line.append(' ')
+        hyphenated_lines.append(next_line)
+    return hyphenated_lines
 
 
 def lemmatize_verbs(words):
@@ -172,6 +230,7 @@ def word_for_id(integer, tokenizer):
             return word
     return None
 
+
 # encode and pad sequences
 def encode_sequences(tokenizer, length, lines):
     # integer encode sequences
@@ -190,3 +249,15 @@ def encode_output(sequences, vocab_size):
     y = array(ylist)
     y = y.reshape(sequences.shape[0], sequences.shape[1], vocab_size)
     return y
+
+
+models = {
+    'simple': simple_model,
+    #      'dense': dense_model
+}
+tokenizers = {'a': create_tokenizer_simple,
+              'b': hyphenate_lines,
+              'c': do_word2phrase,
+              'e': pos_tag}
+# optimizer='rmsprop'
+optimizer = 'adam'

@@ -1,6 +1,7 @@
 import unittest
 from helpers import *
 
+
 class TokenizerTests(unittest.TestCase):
 
     def test_is_in_dict(self):
@@ -57,21 +58,32 @@ class TokenizerTests(unittest.TestCase):
 
     def test_pos_tag_en(self):
         res_list = pos_tag(['The', 'dog', ',', 'and', 'the', 'puppy', 'barked', 'at', 'the', 'other', 'dog'])
-        self.assertEqual(['The.DT', 'dog.NN', ',', 'and.CC', 'the.DT', 'puppy.NN', 'barked.VB', 'at.IN', 'the.DT', 'other.JJ', 'dog.NN'], res_list)
+        self.assertEqual(
+            ['The.DT', 'dog.NN', ',', 'and.CC', 'the.DT', 'puppy.NN', 'barked.VB', 'at.IN', 'the.DT', 'other.JJ',
+             'dog.NN'], res_list)
 
     def test_pos_tag_sv(self):
         res_list = pos_tag(['Hunden', 'och', 'valpen', 'barkade', 'på', 'den', 'andra', 'hunden', '.'], lang='sv')
-        self.assertEqual(['Hunden.NN', 'och.KN', 'valpen.NN', 'barkade.VB', 'på.PP', 'den.DT', 'andra.JJ', 'hunden.NN', '.'], res_list)
+        self.assertEqual(
+            ['Hunden.NN', 'och.KN', 'valpen.NN', 'barkade.VB', 'på.PP', 'den.DT', 'andra.JJ', 'hunden.NN', '.'],
+            res_list)
 
     def test_hyphenate_en(self):
         self.assertEqual(['dig'], hyphenate('dig', lang='en'))
-        self.assertEqual(['dig','i','tal'], hyphenate('digital', lang='en'))
-        self.assertEqual(['hos','pi','tal'], hyphenate('hospital', lang='en'))
+        self.assertEqual(['dig', 'i', 'tal'], hyphenate('digital', lang='en'))
+        self.assertEqual(['hos', 'pi', 'tal'], hyphenate('hospital', lang='en'))
 
     def test_hyphenate_sv(self):
         self.assertEqual(['hus'], hyphenate('hus', lang='sv'))
-        self.assertEqual(['sjuk','hus'], hyphenate('sjukhus', lang='sv'))
-        self.assertEqual(['sjuk','hus','et'], hyphenate('sjukhuset', lang='sv'))
+        self.assertEqual(['sjuk', 'hus'], hyphenate('sjukhus', lang='sv'))
+        self.assertEqual(['sjuk', 'hus', 'et'], hyphenate('sjukhuset', lang='sv'))
+
+    def test_hyphenate_lines(self):
+        self.assertEqual([['hat']], hyphenate_lines(['hat'], lang='en'))
+        self.assertEqual([['The', ' ', 'cat', ' ', 'in', ' ', 'the', ' ', 'hat']],
+                         hyphenate_lines(['The cat in the hat'], lang='en'))
+        self.assertEqual([['The', ' ', 'fe', 'line', ' ', 'in', ' ', 'the', ' ', 'fe', 'do', 'ra']],
+                         hyphenate_lines(['The feline in the fedora'], lang='en'))
 
     def assertEqualSet(self, list1, list2):
         self.assertEqual(set(list1), set(list2))
