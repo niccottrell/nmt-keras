@@ -55,10 +55,23 @@ def create_tokenizer_simple(lines) -> Tokenizer:
     return tokenizer
 
 
+def simple_lines(lines, lang='en'):
+    """
+    Tokenize lines by whitespace
+    :param lines: list(str)
+    :return: list(list(str)
+    """
+    tokenized_lines = []
+    for line in lines:
+        tokenized_lines.append(line.split(' '))
+    return tokenized_lines
+
+
 def pos_tag(line, lang='en'):
     """
     Append part-of-speech tags to each word, keeping the units as a list
     :type line: list(str)
+    :return list(str)
     """
     tuples = do_pos_tag(lang, line)
     result = []
@@ -70,6 +83,19 @@ def pos_tag(line, lang='en'):
             result.append(
                 tuple[0] + "." + pos[:2])  # Only take the first 2 letters of the POS, e.g. 'NN_UTR_SIN_DEF_NOM' -> 'NN'
     return result
+
+
+def pos_tag_lines(lines, lang='en'):
+    """
+    Post tag lines in bul;k
+    :param line: list(str)
+    :param lang: The 2-letter language code
+    :return: list(list(str))
+    """
+    tagged_lines = []
+    for line in lines:
+        tagged_lines.append(pos_tag(line, lang))
+    return tagged_lines
 
 
 def do_pos_tag(lang, line):
@@ -88,18 +114,21 @@ def do_pos_tag(lang, line):
     return tuples
 
 
-def do_word2phrase(lines, lang='en'):
+def word2phrase_lines(lines, lang='en'):
     """
     Convert all inputs to chunked phrases
     :param lines: list(str)
     :param lang: str The language code (but ignored for now)
-    :return: list(str)
+    :return: list(list(str))
     """
+    # Pre-split the lines
+    tokenized_lines = simple_lines(lines, lang)
+    # Now chunk into phrases
     result = []
     from thirdparty.word2phrase import train_model
-    model = train_model(lines)  # Uses defaults since we're assuming a large (>>1000 lines) input
+    model = train_model(tokenized_lines)  # Uses defaults since we're assuming a large (>>1000 lines) input
     for row in model:
-        result.append(row)
+        result.append(row)  # train_model
     return result
 
 
@@ -183,7 +212,7 @@ def hyphenate_lines(lines, lang):
     :param lang: the 2-letter language code
     :return: list(list(str))
     """
-    if (lang == 'sv'):
+    if (lang == 'sv' or lang == 'sve'):
         dic = pyphen.Pyphen(lang='sv_SE')
     else:
         dic = pyphen.Pyphen(lang='en_US')
@@ -255,9 +284,9 @@ models = {
     'simple': simple_model,
     #      'dense': dense_model
 }
-tokenizers = {'a': create_tokenizer_simple,
+tokenizers = {'a': simple_lines,
               'b': hyphenate_lines,
-              'c': do_word2phrase,
-              'e': pos_tag}
+              'c': word2phrase_lines,
+              'e': pos_tag_lines}
 # optimizer='rmsprop'
 optimizer = 'adam'

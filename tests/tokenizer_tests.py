@@ -85,6 +85,10 @@ class TokenizerTests(unittest.TestCase):
         self.assertEqual([['The', ' ', 'fe', 'line', ' ', 'in', ' ', 'the', ' ', 'fe', 'do', 'ra']],
                          hyphenate_lines(['The feline in the fedora'], lang='en'))
 
+    def test_word2phrase_lines(self):
+        self.assertEqual([['Hat']], word2phrase_lines(['Hat'], lang='en'))
+        self.assertEqual([['The', 'cat', 'in', 'the', 'hat', '.']], word2phrase_lines(['The cat in the hat .'], lang='en'))
+
     def assertEqualSet(self, list1, list2):
         self.assertEqual(set(list1), set(list2))
 
