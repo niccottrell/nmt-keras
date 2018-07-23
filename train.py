@@ -50,7 +50,7 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     model.compile(optimizer=optimizer, loss='categorical_crossentropy')
     # summarize defined model
     print(model.summary())
-    plot_model(model, to_file=(filename + '.png'), show_shapes=True)
+    plot_model(model, to_file=('checkpoints/' + filename + '.png'), show_shapes=True)
     # fit model
     checkpoint = ModelCheckpoint('checkpoints/'+ filename + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     # the model is saved via a callback checkpoint
