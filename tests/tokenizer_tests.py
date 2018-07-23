@@ -1,6 +1,8 @@
 import unittest
 from helpers import *
 
+pos_tagged_en = ['The.DT', 'dog.NN', ',', 'and.CC', 'the.DT', 'puppy.NN', 'barked.VB', 'at.IN', 'the.DT',
+                 'other.JJ', 'dog.NN']
 
 class TokenizerTests(unittest.TestCase):
 
@@ -58,15 +60,17 @@ class TokenizerTests(unittest.TestCase):
 
     def test_pos_tag_en(self):
         res_list = pos_tag(['The', 'dog', ',', 'and', 'the', 'puppy', 'barked', 'at', 'the', 'other', 'dog'])
-        self.assertEqual(
-            ['The.DT', 'dog.NN', ',', 'and.CC', 'the.DT', 'puppy.NN', 'barked.VB', 'at.IN', 'the.DT', 'other.JJ',
-             'dog.NN'], res_list)
+        self.assertEqual(pos_tagged_en, res_list)
 
     def test_pos_tag_sv(self):
         res_list = pos_tag(['Hunden', 'och', 'valpen', 'barkade', 'på', 'den', 'andra', 'hunden', '.'], lang='sv')
         self.assertEqual(
             ['Hunden.NN', 'och.KN', 'valpen.NN', 'barkade.VB', 'på.PP', 'den.DT', 'andra.JJ', 'hunden.NN', '.'],
             res_list)
+
+    def test_pos_tag_lines(self):
+        res_list = pos_tag_lines(['The dog , and the puppy barked at the other dog'], 'en')
+        self.assertEqual([pos_tagged_en], res_list)
 
     def test_hyphenate_en(self):
         self.assertEqual(['dig'], hyphenate('dig', lang='en'))
@@ -102,7 +106,6 @@ class TokenizerTests(unittest.TestCase):
                 fw = line[0]
                 if not is_proper(fw, lang):
                     line[0] = line[0].lower()
-
         return res_list
 
 

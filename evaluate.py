@@ -40,29 +40,39 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
     print('BLEU-3: %f' % corpus_bleu(actual, predicted, weights=(0.3, 0.3, 0.3, 0)))
     print('BLEU-4: %f' % corpus_bleu(actual, predicted, weights=(0.25, 0.25, 0.25, 0.25)))
 
-def eval_model(model_name):
+
+def eval_model(model_name, tokenizer_func):
+    print('### About to evaluate model: ' + model_name)
     # load datasets
     dataset = load_clean_sentences('eng-' + lang2 + '-both.pkl')
     train = load_clean_sentences('eng-' + lang2 + '-train.pkl')
     test = load_clean_sentences('eng-' + lang2 + '-test.pkl')
     # prepare english tokenizer
-    eng_tokenizer = create_tokenizer(dataset[:, 0])
+    eng_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 0]))
     eng_vocab_size = len(eng_tokenizer.word_index) + 1
     eng_length = max_length(dataset[:, 0])
     # prepare german tokenizer
-    other_tokenizer = create_tokenizer(dataset[:, 1])
+    other_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 1]))
     other_vocab_size = len(other_tokenizer.word_index) + 1
     other_length = max_length(dataset[:, 1])
     # prepare/encode/pad data (pad to length of target language) TODO: What if eng_length > other_length ??
     trainX = encode_sequences(other_tokenizer, other_length, train[:, 1])
     testX = encode_sequences(other_tokenizer, other_length, test[:, 1])
     # load model
-    model = load_model(model_name)
+    model = load_model('checkpoints/' + model_name + '.h5')
     # test on some training sequences
-    print('Evaluating training set')
+    print('Evaluating training set: ' + train)
     evaluate_model(model, eng_tokenizer, trainX, train)
     # test on some test sequences
     print('Evaluating testing set')
     evaluate_model(model, eng_tokenizer, testX, test)
 
-eval_model('model.h5')
+
+def evaluate_all():
+    for model_name, model_func in models.items():
+        for token_id, tokenizer in tokenizers.items():
+            # save each one
+            eval_model(model_name + '_' + token_id, tokenizer)
+
+
+evaluate_all()

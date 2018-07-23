@@ -15,7 +15,8 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     :param filename: the model name (no extension)
     :return:
     """
-    print("About to train model %s with tokenizer %s and optimizer %s" % model_function, tokenizer_func, optimizer)
+    print("About to train model %s with tokenizer %s and optimizer %s"
+          % (model_function, tokenizer_func, optimizer))
     # load datasets
     dataset = load_clean_sentences('eng-' + lang2 + '-both.pkl')
     train = load_clean_sentences('eng-' + lang2 + '-train.pkl')

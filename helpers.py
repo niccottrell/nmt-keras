@@ -10,6 +10,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tag.hunpos import HunposTagger
 
 from os.path import expanduser
+import traceback
 
 import hunspell
 import unicodedata
@@ -73,35 +74,40 @@ def pos_tag(line, lang='en'):
     :type line: list(str)
     :return list(str)
     """
-    tuples = do_pos_tag(lang, line)
-    result = []
-    for tuple in tuples:
-        if tuple[0] in set(string.punctuation):  # It's just punctuation
-            result.append(tuple[0])
-        else:
-            pos = tuple[1].decode('utf-8')
-            result.append(
-                tuple[0] + "." + pos[:2])  # Only take the first 2 letters of the POS, e.g. 'NN_UTR_SIN_DEF_NOM' -> 'NN'
-    return result
+    try:
+        tuples = pos_tag_tokens(line, lang)
+        result = []
+        for tuple in tuples:
+            if tuple[0] in set(string.punctuation):  # It's just punctuation
+                result.append(tuple[0])
+            else:
+                pos = tuple[1].decode('utf-8')
+                result.append(
+                    tuple[0] + "." + pos[
+                                     :2])  # Only take the first 2 letters of the POS, e.g. 'NN_UTR_SIN_DEF_NOM' -> 'NN'
+        return result
+    except:
+        print('Error tagging line `%s` in %s' % (line, lang))
+        traceback.print_exc()
 
 
 def pos_tag_lines(lines, lang='en'):
-    """
-    Post tag lines in bul;k
-    :param line: list(str)
+    """Post tag lines in bulk
+    :param lines: list(str)
     :param lang: The 2-letter language code
     :return: list(list(str))
     """
+    tokenized_lines = simple_lines(lines, lang)
     tagged_lines = []
-    for line in lines:
+    for line in tokenized_lines:
         tagged_lines.append(pos_tag(line, lang))
     return tagged_lines
 
 
-def do_pos_tag(lang, line):
+def pos_tag_tokens(line, lang):
     """
     Do POS-tagging but return tuples for each input word
-    :type line: list(str)
+    :type line: list(str) An already tokenized line
     """
     iso3 = ('sve' if lang[:2] == 'sv' else 'eng')
     if (iso3 == 'eng'):
@@ -173,7 +179,7 @@ def is_capitalized(word):
 
 
 def is_noun(word, lang):
-    tuples = do_pos_tag(lang, [word])
+    tuples = pos_tag_tokens([word], lang)
     pos = tuples[0][1].decode('utf-8')
     return True if pos[0] == 'N' else False
 
@@ -284,9 +290,11 @@ models = {
     'simple': simple_model,
     #      'dense': dense_model
 }
-tokenizers = {'a': simple_lines,
-              'b': hyphenate_lines,
-              'c': word2phrase_lines,
-              'e': pos_tag_lines}
+tokenizers = {
+    'a': simple_lines,
+    'b': hyphenate_lines,
+    'c': word2phrase_lines,
+    'e': pos_tag_lines}
+
 # optimizer='rmsprop'
 optimizer = 'adam'
