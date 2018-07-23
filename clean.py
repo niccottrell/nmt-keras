@@ -31,7 +31,10 @@ def to_pairs(doc):
 
 
 # clean a list of lines
-def clean_pairs(lines):
+def clean_pairs(lines, langs):
+    """
+    Cleans and normalizes pairs of inputs
+    """
     cleaned = list()
     # prepare regex for char filtering
     re_print = re.compile('[^%s]' % re.escape(string.printable))
@@ -39,7 +42,8 @@ def clean_pairs(lines):
     # table = str.maketrans('', '', string.punctuation)
     for pair in lines:
         clean_pair = list()
-        for sent in pair:
+        for idx, sent in enumerate(pair):
+            lang = langs[idx]
             # normalize unicode characters
             # sent = normalize('NFD', sent)
             # line = line.encode('ascii', 'ignore')
@@ -50,10 +54,10 @@ def clean_pairs(lines):
             sent = re.sub(r'http[s]?://[^\s<>"]+|www\.[^\s<>"]+', ' URL ', sent)
             # remove Twitter handles
             sent = re.sub(r'(^|[^@\w])@(\w{1,15})\b', ' USER ', sent)
-            # tokenize on white space
-            # line = line.split()
-            # tokenize more intelligently
-            tokens = word_tokenize(sent)
+            # alter language-specific abbreviations etc. [sic]
+            sent = prepare_line(sent, lang, 'lookup')
+            # tokenize more intelligently (TODO should this just use WordPunctTokenizer too?)
+            tokens = word_tokenize(sent, 'english' if lang == 'en' else 'swedish')
             # convert to lowercase
             # line = [word.lower() for word in line]
             # remove punctuation from each token
@@ -74,7 +78,7 @@ doc = load_doc(filename)
 # split into english-german pairs
 pairs = to_pairs(doc)
 # clean sentences
-clean_pairs = clean_pairs(pairs)
+clean_pairs = clean_pairs(pairs, ['en', 'sv'])
 # save clean pairs to file
 save_clean_data(clean_pairs, 'eng-' + lang2 + '.pkl')
 # spot check
