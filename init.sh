@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-yum install wget unzip
+sudo yum install -y wget unzip hunspell hunspell-devel python
 
 wget http://www.manythings.org/anki/swe-eng.zip
 unzip swe-eng.zip
@@ -14,9 +14,11 @@ gunzip suc-suctags.model.gz
 wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/hunpos/en_wsj.model.gz
 gunzip en_wsj.model.gz
 
+pip install --upgrade pip
+
 pip install -r requirements.txt
 
-python setup.py
+python setup.py install
 python clean.py
 python prepare.py
 python train.py

@@ -68,6 +68,31 @@ pip install --upgrade pip setuptools
 https://cgit.freedesktop.org/libreoffice/dictionaries/tree/sv_SE/sv_SE.dic
 https://cgit.freedesktop.org/libreoffice/dictionaries/tree/en/en_US.dic
 
+# Download code
+
+```sh
+yum install -y git
+git clone https://bitbucket.org/niccottrell/nmt-keras.git
+```
+
+# EC2
+
+## AMI
+
+Deep Learning AMI (Amazon Linux) Version 12.0 - ami-00051cea
+
+Comes with latest binaries of deep learning frameworks pre-installed in separate virtual environments: MXNet, TensorFlow, Caffe, Caffe2, PyTorch, Keras, Chainer, Theano and CNTK. Fully-configured with NVidia CUDA, cuDNN and NCCL as well as Intel MKL-DNN
+
+Root device type: ebs 
+Virtualization type: hvm 
+ENA Enabled: Yes
+
+## Instance type
+
+* Amazon EC2 P3 Instances have up to 8 NVIDIA Tesla V100 GPUs.
+* Amazon EC2 P2 Instances have up to 16 NVIDIA NVIDIA K80 GPUs.
+* Amazon EC2 G3 Instances have up to 4 NVIDIA Tesla M60 GPUs.
+
 # Libraries used
 
 ## Pyphen
