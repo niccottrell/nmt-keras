@@ -188,11 +188,10 @@ def is_noun(word, lang):
 
 
 def is_in_dict(word, lang):
-    home = expanduser("~")
-    path = home + '/Library/Spelling/'
-    if (lang == 'en'):
+    path = './hunspell/'
+    if lang == 'en':
         hobj = hunspell.HunSpell(path + 'en_US.dic', path + 'en_US.aff')
-    elif (lang == 'sv'):
+    elif lang == 'sv':
         hobj = hunspell.HunSpell(path + 'sv_SE.dic', path + 'sv_SE.aff')
     else:
         raise Exception("Do not support language: " + lang)

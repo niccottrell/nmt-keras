@@ -5,8 +5,11 @@ sudo yum install -y wget unzip hunspell hunspell-devel python
 wget http://www.manythings.org/anki/swe-eng.zip
 unzip swe-eng.zip
 
-wget https://cgit.freedesktop.org/libreoffice/dictionaries/tree/sv_SE/sv_SE.dic
-wget https://cgit.freedesktop.org/libreoffice/dictionaries/tree/en/en_US.dic
+mkdir hunspell
+curl -o hunspell/sv_SE.dic https://cgit.freedesktop.org/libreoffice/dictionaries/plain/sv_SE/sv_SE.dic
+curl -o hunspell/sv_SE.aff https://cgit.freedesktop.org/libreoffice/dictionaries/plain/sv_SE/sv_SE.aff
+curl -o hunspell/en_US.dic https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
+curl -o hunspell/en_US.aff https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.aff
 
 wget http://stp.lingfil.uu.se/~bea/resources/hunpos/suc-suctags.model.gz
 gunzip suc-suctags.model.gz
