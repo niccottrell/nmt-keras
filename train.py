@@ -21,19 +21,18 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     dataset = load_clean_sentences('eng-' + lang2 + '-both.pkl')
     train = load_clean_sentences('eng-' + lang2 + '-train.pkl')
     test = load_clean_sentences('eng-' + lang2 + '-test.pkl')
-
     # prepare english tokenizer
     eng_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 0], 'en'))
     eng_vocab_size = len(eng_tokenizer.word_index) + 1
     eng_length = max_length(dataset[:, 0])
     print('English Vocabulary Size: %d' % eng_vocab_size)
-    print('English Max Length: %d' % (eng_length))
-    # prepare german tokenizer
+    print('English Max Length: %d' % eng_length)
+    # prepare other language tokenizer
     other_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 1], lang2))
     other_vocab_size = len(other_tokenizer.word_index) + 1
     other_length = max_length(dataset[:, 1])
     print('Other Vocabulary Size: %d' % other_vocab_size)
-    print('Other Max Length: %d' % (other_length))
+    print('Other Max Length: %d' % other_length)
 
     # prepare training data
     trainX = encode_sequences(other_tokenizer, other_length, train[:, 1])
@@ -64,6 +63,26 @@ def train_all():
             # save each one
             train_save(model_func, tokenizer, model_name + '_' + token_id, optimizer)
 
+
+def summarize_tokenizers():
+    # load full dataset
+    dataset = load_clean_sentences('eng-' + lang2 + '-both.pkl')
+    for tokenizer_id, tokenizer_func in tokenizers.items():
+        print('Summary of Tokenizer: %s' % tokenizer_func)
+        # prepare english tokenizer
+        eng_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 0], 'en'))
+        eng_vocab_size = len(eng_tokenizer.word_index) + 1
+        eng_length = max_length(dataset[:, 0])
+        print('English Vocabulary Size: %d' % eng_vocab_size)
+        print('English Max Length: %d' % eng_length)
+        # prepare german tokenizer
+        other_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 1], lang2))
+        other_vocab_size = len(other_tokenizer.word_index) + 1
+        other_length = max_length(dataset[:, 1])
+        print('Other Vocabulary Size: %d' % other_vocab_size)
+        print('Other Max Length: %d' % other_length)
+
+summarize_tokenizers()
 
 # Start the training
 train_all()

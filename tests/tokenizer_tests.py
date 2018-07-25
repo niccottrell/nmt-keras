@@ -74,6 +74,18 @@ class TokenizerTests(unittest.TestCase):
             ['Hunden.NN', 'och.KN', 'valpen.NN', 'barkade.VB', 'på.PP', 'den.DT', 'andra.JJ', 'hunden.NN', '.'],
             res_list)
 
+    def test_pos_tag_sve(self):
+        res_list = pos_tag(['Den', 'såg', 'billig', 'ut', '.'], lang='sve')
+        self.assertEqual(
+            ['Den', 'såg', 'billig', 'ut', '.'],
+            res_list)
+
+    def test_pos_tag_utf8(self):
+        input = ['It', 'costs', '€', '2', '.', '35']
+        target = ['It.PR', 'costs.VB', '€', '2', '.', '35']
+        res_list = pos_tag(input)
+        self.assertEqual(target, res_list)
+
     def test_pos_tag_lines(self):
         res_list = pos_tag_lines(['The dog , and the puppy barked at the other dog'], 'en')
         self.assertEqual([pos_tagged_en], res_list)

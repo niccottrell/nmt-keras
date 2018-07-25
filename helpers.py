@@ -77,11 +77,12 @@ def pos_tag(line, lang='en'):
     :type line: list(str)
     :return list(str)
     """
+    pattern = re.compile("[\d€{}]+$".format(re.escape(string.punctuation)))
     try:
         tuples = pos_tag_tokens(line, lang)
         result = []
         for tuple in tuples:
-            if tuple[0] in set(string.punctuation):  # It's just punctuation
+            if pattern.match(tuple[0]):  # It's just punctuation/digits/symbols
                 result.append(tuple[0])
             else:
                 pos = tuple[1].decode('utf-8')
@@ -118,7 +119,7 @@ def pos_tag_tokens(line, lang):
         model = 'en_wsj.model'
     else:  # Swedish
         model = 'suc-suctags.model'
-    ht = HunposTagger(model, path_to_bin='./hunpos-tag')
+    ht = HunposTagger(model, path_to_bin='./hunpos-tag', encoding='utf-8')
     tuples = ht.tag(line)
     return tuples
 
@@ -293,9 +294,9 @@ models = {
     #      'dense': dense_model
 }
 tokenizers = {
-    'a': simple_lines,
-    'b': hyphenate_lines,
-    'c': word2phrase_lines,
+    #'a': simple_lines,
+    #'b': hyphenate_lines,
+    #'c': word2phrase_lines,
     'e': pos_tag_lines}
 
 # optimizer='rmsprop'
