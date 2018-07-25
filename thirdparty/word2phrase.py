@@ -41,8 +41,8 @@ def learn_vocab_from_train_iter(train_iter):
     vocab = defaultdict(int)
     train_words = 0
     for line in train_iter:
-        if line == []:    # If there are multiple empty lines following each other, the loop is broken
-          continue        # without giving any errors. That line solves the problem. (Ahmet Aksoy 20160721)
+        if line == []:  # If there are multiple empty lines following each other, the loop is broken
+            continue  # without giving any errors. That line solves the problem. (Ahmet Aksoy 20160721)
         for pair in pairwise(line):
             vocab[pair[0]] += 1
             if None not in pair:
@@ -73,14 +73,15 @@ def train_model(train_iter, min_count=5, threshold=100.0, sep='_'):
     """
     vocab_iter, train_iter = tee(train_iter)
     vocab, train_words = learn_vocab_from_train_iter(vocab_iter)
-    print("Done Vocab", len(vocab), train_words)
+    print("word2phrase.train_model: raw vocab=%d, train_words=%d" % (len(vocab), train_words))
     vocab = filter_vocab(vocab, min_count)
-    print("Filtered Vocab", len(vocab))
+    print("word2phrase.train_model: filtered vocab=%d" % len(vocab))
 
     for line in train_iter:
         out_sentence = []
         pairs = pairwise(line)
         for pair in pairs:
+            # TODO: ignore if one part of the pair is punctuation, digits or symbols
             pa = vocab.get(pair[0])
             pb = vocab.get(pair[1])
             pab = vocab.get(pair)
@@ -123,8 +124,8 @@ def main():
         this_thresh = max(options.threshold - (i * options.discount * options.threshold), 0.0)
         print("Iteration: %d Threshold: %6.2f" % (i, this_thresh))
         out = train_model(out, min_count=options.min_count,
-                threshold=this_thresh,
-                sep=options.sep)
+                          threshold=this_thresh,
+                          sep=options.sep)
     out_fh = open(options.output_file, 'w')
     for row in out:
         out_fh.write(' '.join(row) + '\n')

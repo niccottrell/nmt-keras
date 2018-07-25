@@ -6,6 +6,7 @@ from keras.utils.vis_utils import plot_model
 
 from helpers import *
 
+epochs = 120
 
 def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     """
@@ -22,15 +23,19 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     train = load_clean_sentences('eng-' + lang2 + '-train.pkl')
     test = load_clean_sentences('eng-' + lang2 + '-test.pkl')
     # prepare english tokenizer
-    eng_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 0], 'en'))
+    dataset_lang1 = dataset[:, 0]
+    eng_tokenized = tokenizer_func(dataset_lang1, 'en')
+    eng_tokenizer = create_tokenizer(eng_tokenized)
     eng_vocab_size = len(eng_tokenizer.word_index) + 1
-    eng_length = max_length(dataset[:, 0])
+    eng_length = max_length(eng_tokenized)
     print('English Vocabulary Size: %d' % eng_vocab_size)
     print('English Max Length: %d' % eng_length)
     # prepare other language tokenizer
-    other_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 1], lang2))
+    dataset_lang2 = dataset[:, 1]
+    other_tokenized = tokenizer_func(dataset_lang2, lang2)
+    other_tokenizer = create_tokenizer(other_tokenized)
     other_vocab_size = len(other_tokenizer.word_index) + 1
-    other_length = max_length(dataset[:, 1])
+    other_length = max_length(other_tokenized)
     print('Other Vocabulary Size: %d' % other_vocab_size)
     print('Other Max Length: %d' % other_length)
 
@@ -53,7 +58,7 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     # fit model
     checkpoint = ModelCheckpoint('checkpoints/'+ filename + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     # the model is saved via a callback checkpoint
-    model.fit(trainX, trainY, epochs=30, batch_size=64, validation_data=(testX, testY), callbacks=[checkpoint],
+    model.fit(trainX, trainY, epochs=epochs, batch_size=64, validation_data=(testX, testY), callbacks=[checkpoint],
               verbose=2)
 
 def train_all():
@@ -62,27 +67,6 @@ def train_all():
         for token_id, tokenizer in tokenizers.items():
             # save each one
             train_save(model_func, tokenizer, model_name + '_' + token_id, optimizer)
-
-
-def summarize_tokenizers():
-    # load full dataset
-    dataset = load_clean_sentences('eng-' + lang2 + '-both.pkl')
-    for tokenizer_id, tokenizer_func in tokenizers.items():
-        print('Summary of Tokenizer: %s' % tokenizer_func)
-        # prepare english tokenizer
-        eng_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 0], 'en'))
-        eng_vocab_size = len(eng_tokenizer.word_index) + 1
-        eng_length = max_length(dataset[:, 0])
-        print('English Vocabulary Size: %d' % eng_vocab_size)
-        print('English Max Length: %d' % eng_length)
-        # prepare german tokenizer
-        other_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 1], lang2))
-        other_vocab_size = len(other_tokenizer.word_index) + 1
-        other_length = max_length(dataset[:, 1])
-        print('Other Vocabulary Size: %d' % other_vocab_size)
-        print('Other Max Length: %d' % other_length)
-
-summarize_tokenizers()
 
 # Start the training
 train_all()

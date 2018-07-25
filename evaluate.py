@@ -49,12 +49,11 @@ def eval_model(model_name, tokenizer_func):
     test = load_clean_sentences('eng-' + lang2 + '-test.pkl')
     # prepare english tokenizer
     eng_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 0]))
-    eng_vocab_size = len(eng_tokenizer.word_index) + 1
-    eng_length = max_length(dataset[:, 0])
     # prepare german tokenizer
-    other_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 1]))
-    other_vocab_size = len(other_tokenizer.word_index) + 1
-    other_length = max_length(dataset[:, 1])
+    dataset_lang2 = dataset[:, 1]
+    other_tokenizer = create_tokenizer(tokenizer_func(dataset_lang2))
+    other_tokenized = tokenizer_func(dataset_lang2, lang2)
+    other_length = max_length(other_tokenized)
     # prepare/encode/pad data (pad to length of target language) TODO: What if eng_length > other_length ??
     trainX = encode_sequences(other_tokenizer, other_length, train[:, 1])
     testX = encode_sequences(other_tokenizer, other_length, test[:, 1])

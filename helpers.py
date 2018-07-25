@@ -42,8 +42,12 @@ def save_clean_data(sentences, filename):
     print('Saved {0} to {1}'.format(sentences.shape, filename))
 
 
-# create a tokenizer
 def create_tokenizer(lines) -> Tokenizer:
+    """
+    create a tokenizer
+    :param lines: list(list(str)) already tokenized lines
+    :return: Tokenizer
+    """
     return create_tokenizer_simple(lines)
 
 
@@ -136,6 +140,7 @@ def word2phrase_lines(lines, lang='en'):
     # Now chunk into phrases
     result = []
     from thirdparty.word2phrase import train_model
+    # TODO: we should train the phrases once on the entire dataset, then apply this to the test and train sets
     model = train_model(tokenized_lines)  # Uses defaults since we're assuming a large (>>1000 lines) input
     for row in model:
         result.append(row)  # train_model
@@ -251,9 +256,13 @@ def lemmatize_verbs(words):
     return lemmas
 
 
-# max sentence length
 def max_length(lines):
-    return max(len(line.split()) for line in lines)
+    """
+    max sentence length
+    :param lines: list(list(str)
+    :return: int
+    """
+    return max(len(line) for line in lines)
 
 
 def word_for_id(integer, tokenizer):
@@ -270,11 +279,11 @@ def word_for_id(integer, tokenizer):
 
 
 # encode and pad sequences
-def encode_sequences(tokenizer, length, lines):
+def encode_sequences(tokenizer, max_length, lines):
     # integer encode sequences
     X = tokenizer.texts_to_sequences(lines)
     # pad sequences with 0 values
-    X = pad_sequences(X, maxlen=length, padding='post')
+    X = pad_sequences(X, maxlen=max_length, padding='post')
     return X
 
 
@@ -294,9 +303,9 @@ models = {
     #      'dense': dense_model
 }
 tokenizers = {
-    #'a': simple_lines,
-    #'b': hyphenate_lines,
-    #'c': word2phrase_lines,
+    'a': simple_lines,
+    'b': hyphenate_lines,
+    'c': word2phrase_lines,
     'e': pos_tag_lines}
 
 # optimizer='rmsprop'
