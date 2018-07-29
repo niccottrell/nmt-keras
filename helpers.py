@@ -25,20 +25,35 @@ nltk.download('averaged_perceptron_tagger')
 
 lang2 = 'sve'
 
+version = '201807b'
+
 
 # Remove control charactesr in a unicode-aware way
 def remove_control_characters(s):
     return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
 
 
-# load a clean dataset
-def load_clean_sentences(filename):
+def get_filename(subset=None):
+    filename = 'eng-' + lang2
+    if subset is not None:
+        filename += '-' + subset
+    filename += '.pkl'
+    return filename
+
+
+def load_clean_sentences(subset=None):
+    """
+    load a clean dataset
+    :param subset: str
+    :return:
+    """
+    filename = get_filename(subset)
     return load(open(filename, 'rb'))
 
 
 # save a list of clean sentences to file
-def save_clean_data(sentences, filename):
-    dump(sentences, open(filename, 'wb'))
+def save_clean_data(sentences, subset=None):
+    filename = get_filename(subset)
     print('Saved {0} to {1}'.format(sentences.shape, filename))
 
 
@@ -60,14 +75,14 @@ def create_tokenizer_simple(lines) -> Tokenizer:
     return tokenizer
 
 
-def simple_lines(lines, lang='en'):
+def simple_lines(lines, lang):
     """
     Tokenize lines by whitespace but discard whitespace
     :param lines: list(str)
     :return: list(list(str)
     """
     from nltk.tokenize import WordPunctTokenizer
-    wpt = WordPunctTokenizer() # See http://text-processing.com/demo/tokenize/ for examples
+    wpt = WordPunctTokenizer()  # See http://text-processing.com/demo/tokenize/ for examples
     tokenized_lines = []
     for line in lines:
         # tokenized_lines.append(line.split(' '))
@@ -99,7 +114,7 @@ def pos_tag(line, lang='en'):
         traceback.print_exc()
 
 
-def pos_tag_lines(lines, lang='en'):
+def pos_tag_lines(lines, lang):
     """Post tag lines in bulk
     :param lines: list(str)
     :param lang: The 2-letter language code
@@ -128,7 +143,7 @@ def pos_tag_tokens(line, lang):
     return tuples
 
 
-def word2phrase_lines(lines, lang='en'):
+def word2phrase_lines(lines, lang):
     """
     Convert all inputs to chunked phrases
     :param lines: list(str)
@@ -278,8 +293,14 @@ def word_for_id(integer, tokenizer):
     return None
 
 
-# encode and pad sequences
 def encode_sequences(tokenizer, max_length, lines):
+    """
+    encode and pad sequences
+    :param tokenizer: Tokenizer
+    :param max_length: int
+    :param lines: list(list(str)
+    :return: Numpy array
+    """
     # integer encode sequences
     X = tokenizer.texts_to_sequences(lines)
     # pad sequences with 0 values
@@ -287,8 +308,13 @@ def encode_sequences(tokenizer, max_length, lines):
     return X
 
 
-# one hot encode target sequence
 def encode_output(sequences, vocab_size):
+    """
+    one hot encode target sequence
+    :param sequences: Numpy array
+    :param vocab_size: int
+    :return: reshaped Numpy array?
+    """
     ylist = list()
     for sequence in sequences:
         encoded = to_categorical(sequence, num_classes=vocab_size)
@@ -300,7 +326,7 @@ def encode_output(sequences, vocab_size):
 
 models = {
     'simple': simple_model,
-    #      'dense': dense_model
+    #     'dense': dense_model
 }
 tokenizers = {
     'a': simple_lines,

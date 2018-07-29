@@ -44,19 +44,19 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
 def eval_model(model_name, tokenizer_func):
     print('### About to evaluate model: ' + model_name)
     # load datasets
-    dataset = load_clean_sentences('eng-' + lang2 + '-both.pkl')
-    train = load_clean_sentences('eng-' + lang2 + '-train.pkl')
-    test = load_clean_sentences('eng-' + lang2 + '-test.pkl')
+    dataset = load_clean_sentences('both')
+    train = load_clean_sentences('train')
+    test = load_clean_sentences('test')
     # prepare english tokenizer
-    eng_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 0]))
+    eng_tokenizer = create_tokenizer(tokenizer_func(dataset[:, 0], 'en'))
     # prepare german tokenizer
     dataset_lang2 = dataset[:, 1]
-    other_tokenizer = create_tokenizer(tokenizer_func(dataset_lang2))
+    other_tokenizer = create_tokenizer(tokenizer_func(dataset_lang2, lang2))
     other_tokenized = tokenizer_func(dataset_lang2, lang2)
     other_length = max_length(other_tokenized)
     # prepare/encode/pad data (pad to length of target language) TODO: What if eng_length > other_length ??
-    trainX = encode_sequences(other_tokenizer, other_length, train[:, 1])
-    testX = encode_sequences(other_tokenizer, other_length, test[:, 1])
+    trainX = encode_sequences(other_tokenizer, other_length, tokenizer_func(train[:, 1], lang2))
+    testX = encode_sequences(other_tokenizer, other_length, tokenizer_func(test[:, 1], lang2))
     # load model
     model = load_model('checkpoints/' + model_name + '.h5')
     # test on some training sequences
@@ -71,7 +71,8 @@ def evaluate_all():
     for model_name, model_func in models.items():
         for token_id, tokenizer in tokenizers.items():
             # save each one
-            eval_model(model_name + '_' + token_id, tokenizer)
+            model_name = model_name + '_' + token_id + '_' + version
+            eval_model(model_name, tokenizer)
 
 
 evaluate_all()

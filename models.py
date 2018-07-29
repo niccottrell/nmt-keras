@@ -12,7 +12,7 @@ from keras.models import Sequential, Model
 def simple_model(src_vocab, target_vocab, src_timesteps, target_timesteps, n_units):
     """
      define a simple NMT model
-    :param :n_units: dimensionality of the LTSM layers
+    :param :n_units: dimensionality of the LTSM layers (more dimensions => more complex => longer to train => better?
     :return: A Keras model instance.
     """
     model = Sequential()

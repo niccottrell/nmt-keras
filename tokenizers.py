@@ -6,7 +6,7 @@ from helpers import *
 
 def summarize_tokenizers():
     # load full dataset
-    dataset = load_clean_sentences('eng-' + lang2 + '-both.pkl')
+    dataset = load_clean_sentences('both')
     for tokenizer_id, tokenizer_func in tokenizers.items():
         print('Summary of Tokenizer: %s' % tokenizer_id)
         # prepare english tokenizer

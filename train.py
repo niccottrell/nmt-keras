@@ -6,7 +6,9 @@ from keras.utils.vis_utils import plot_model
 
 from helpers import *
 
-epochs = 120
+epochs = 60
+
+n_units = 256 # Dimensionality of the LSTM layers
 
 def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     """
@@ -17,11 +19,11 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     :return:
     """
     print("About to train model %s with tokenizer %s and optimizer %s"
-          % (model_function, tokenizer_func, optimizer))
+          % (model_function.__name__, tokenizer_func.__name__, optimizer))
     # load datasets
-    dataset = load_clean_sentences('eng-' + lang2 + '-both.pkl')
-    train = load_clean_sentences('eng-' + lang2 + '-train.pkl')
-    test = load_clean_sentences('eng-' + lang2 + '-test.pkl')
+    dataset = load_clean_sentences('both')
+    train = load_clean_sentences('train')
+    test = load_clean_sentences('test')
     # prepare english tokenizer
     dataset_lang1 = dataset[:, 0]
     eng_tokenized = tokenizer_func(dataset_lang1, 'en')
@@ -40,16 +42,15 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     print('Other Max Length: %d' % other_length)
 
     # prepare training data
-    trainX = encode_sequences(other_tokenizer, other_length, train[:, 1])
-    trainY = encode_sequences(eng_tokenizer, eng_length, train[:, 0])
+    trainX = encode_sequences(other_tokenizer, other_length, tokenizer_func(train[:, 1], lang2))
+    trainY = encode_sequences(eng_tokenizer, eng_length, tokenizer_func(train[:, 0], 'en'))
     trainY = encode_output(trainY, eng_vocab_size)
     # prepare validation data
-    testX = encode_sequences(other_tokenizer, other_length, test[:, 1])
-    testY = encode_sequences(eng_tokenizer, eng_length, test[:, 0])
+    testX = encode_sequences(other_tokenizer, other_length, tokenizer_func(test[:, 1], lang2))
+    testY = encode_sequences(eng_tokenizer, eng_length, tokenizer_func(test[:, 0], 'en'))
     testY = encode_output(testY, eng_vocab_size)
 
     # define model
-    n_units = 256
     model = model_function(other_vocab_size, eng_vocab_size, other_length, eng_length, n_units)
     model.compile(optimizer=optimizer, loss='categorical_crossentropy')
     # summarize defined model
@@ -66,7 +67,7 @@ def train_all():
     for model_name, model_func in models.items():
         for token_id, tokenizer in tokenizers.items():
             # save each one
-            train_save(model_func, tokenizer, model_name + '_' + token_id, optimizer)
+            train_save(model_func, tokenizer, model_name + '_' + token_id+ ' ' + version, optimizer)
 
 # Start the training
 train_all()
