@@ -85,7 +85,6 @@ def simple_lines(lines, lang):
     wpt = WordPunctTokenizer()  # See http://text-processing.com/demo/tokenize/ for examples
     tokenized_lines = []
     for line in lines:
-        # tokenized_lines.append(line.split(' '))
         tokenized_lines.append(wpt.tokenize(line))
     return tokenized_lines
 
@@ -134,13 +133,59 @@ def pos_tag_tokens(line, lang):
     """
     iso3 = ('sve' if lang[:2] == 'sv' else 'eng')
     if (iso3 == 'eng'):
-        # tuples = nltk.tag.pos_tag(line, lang=iso3)
         model = 'en_wsj.model'
+        enc = 'utf-8'
     else:  # Swedish
         model = 'suc-suctags.model'
-    ht = HunposTagger(model, path_to_bin='./hunpos-tag', encoding='utf-8')
+        enc = 'ISO-8859-1'
+    ht = HunposTagger(model, path_to_bin='./hunpos-tag', encoding=enc)
     tuples = ht.tag(line)
     return tuples
+
+
+def replace_proper(line, lang):
+    """
+    Append part-of-speech tags to each word, keeping the units as a list
+    :type line: list(str)
+    :type lang: str 2-letter language code
+    :return list(str)
+    """
+    inside_proper = False
+    proper_idx = 1
+    pattern = re.compile("[\d€{}]+$".format(re.escape(string.punctuation)))
+    try:
+        tuples = pos_tag_tokens(line, lang)
+        result = []
+        for tuple in tuples:
+            if pattern.match(tuple[0]):  # It's just punctuation/digits/symbols
+                result.append(tuple[0])
+            else:
+                pos = tuple[1].decode('utf-8')
+                if pos == 'NNP' or pos == 'PM_NOM':  # Proper noun
+                    if not inside_proper:  # Don't write NP twice
+                        result.append('NP' + str(proper_idx))
+                        inside_proper = True
+                        proper_idx += 1
+                else:
+                    result.append(tuple[0])
+                    inside_proper = False
+        return result
+    except:
+        print('Error tagging line `%s` in %s' % (line, lang))
+        traceback.print_exc()
+
+
+def replace_proper_lines(lines, lang):
+    """Post tag lines in bulk
+    :param lines: list(str)
+    :param lang: The 2-letter language code
+    :return: list(list(str))
+    """
+    tokenized_lines = simple_lines(lines, lang)
+    tagged_lines = []
+    for line in tokenized_lines:
+        tagged_lines.append(replace_proper(line, lang))
+    return tagged_lines
 
 
 def word2phrase_lines(lines, lang):
@@ -297,7 +342,7 @@ def encode_sequences(tokenizer, max_length, lines):
     """
     encode and pad sequences
     :param tokenizer: Tokenizer
-    :param max_length: int
+    :param max_length: int Pad the sequence up to this length
     :param lines: list(list(str)
     :return: Numpy array
     """
@@ -332,6 +377,7 @@ tokenizers = {
     'a': simple_lines,
     'b': hyphenate_lines,
     'c': word2phrase_lines,
+    'd': replace_proper_lines,
     'e': pos_tag_lines}
 
 # optimizer='rmsprop'

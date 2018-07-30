@@ -77,10 +77,13 @@ class TokenizerTests(unittest.TestCase):
     def test_pos_tag_sve(self):
         res_list = pos_tag(['Den', 'såg', 'billig', 'ut', '.'], lang='sve')
         self.assertEqual(
-            ['Den', 'såg', 'billig', 'ut', '.'],
+            ['Den.PN', 'såg.VB', 'billig.JJ', 'ut.AB', '.'], # where AB=adverb
             res_list)
 
     def test_pos_tag_utf8(self):
+        """
+        Tests a non-latin1 character (the euro symbol) which causes problems since the POS taggers are trained on latin1 input
+        """
         input = ['It', 'costs', '€', '2', '.', '35']
         target = ['It.PR', 'costs.VB', '€', '2', '.', '35']
         res_list = pos_tag(input)
@@ -101,11 +104,32 @@ class TokenizerTests(unittest.TestCase):
         self.assertEqual(['sjuk', 'hus', 'et'], hyphenate('sjukhuset', lang='sv'))
 
     def test_hyphenate_lines(self):
-        self.assertEqual([['hat']], hyphenate_lines(['hat'], lang='en'))
+        self.assertEqual([['hat']],
+                         hyphenate_lines(['hat'], lang='en'))
         self.assertEqual([['The', ' ', 'cat', ' ', 'in', ' ', 'the', ' ', 'hat']],
                          hyphenate_lines(['The cat in the hat'], lang='en'))
         self.assertEqual([['The', ' ', 'fe', 'line', ' ', 'in', ' ', 'the', ' ', 'fe', 'do', 'ra']],
                          hyphenate_lines(['The feline in the fedora'], lang='en'))
+
+    def test_replace_proper_en(self):
+        self.assertEqual([['hat']],
+                         replace_proper_lines(['hat'], lang='en'))
+        self.assertEqual([['The', 'cat', 'in', 'the', 'hat']],
+                         replace_proper_lines(['The cat in the hat'], lang='en'))
+        self.assertEqual([['The', 'feline', 'in', 'the', 'fedora']],
+                         replace_proper_lines(['The feline in the fedora'], lang='en'))
+        self.assertEqual([['NP1', 'is', 'a', 'cat', ',', 'and', 'NP2', 'is', 'a', 'duck']],
+                         replace_proper_lines(['Felix is a cat, and Daffy is a duck'], lang='en'))
+
+    def test_replace_proper_sv(self):
+        self.assertEqual([['katt']],
+                         replace_proper_lines(['katt'], lang='sv'))
+        self.assertEqual([['Han', 'kommer', 'från', 'NP1']],
+                         replace_proper_lines(['Han kommer från Stockholm'], lang='sv'))
+        self.assertEqual([['The', 'feline', 'in', 'the', 'fedora']],
+                         replace_proper_lines(['The feline in the fedora'], lang='sv'))
+        self.assertEqual([['NP1', 'är', 'en', 'katt', ',', 'och', 'NP2', 'är', 'en', 'anka']],
+                         replace_proper_lines(['Felix är en katt, och Kalle Anka är en anka'], lang='sv'))
 
     def test_word2phrase_lines(self):
         self.assertEqual([['Hat']], word2phrase_lines(['Hat'], lang='en'))
