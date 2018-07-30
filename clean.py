@@ -1,16 +1,12 @@
-import string
-import re
-from pickle import dump
-from unicodedata import normalize
-from numpy import array
 from nltk.tokenize import word_tokenize
+from unidecode import unidecode
 
+import sys
 import nltk
 
 nltk.download('punkt')
 
 from helpers import *
-
 
 # load doc into memory
 def load_doc(filename):
@@ -25,6 +21,7 @@ def load_doc(filename):
 
 # split a loaded document into sentences
 def to_pairs(doc):
+    print("Splitting data files into pairs")
     lines = doc.strip().split('\n')
     pairs = [line.split('\t') for line in lines]
     return pairs
@@ -35,52 +32,73 @@ def clean_pairs(lines, langs):
     """
     Cleans and normalizes pairs of inputs
     """
+    print("Cleaning %d pairs" % len(lines))
     cleaned = list()
     # prepare regex for char filtering
     re_print = re.compile('[^%s]' % re.escape(string.printable))
     # prepare translation table for removing punctuation
     # table = str.maketrans('', '', string.punctuation)
-    for pair in lines:
+    for pair_idx, pair in enumerate(lines):
         clean_pair = list()
         for idx, sent in enumerate(pair):
+            if (idx > 1): raise Exception("Weird index: %s" % str(pair))
             lang = langs[idx]
-            # normalize unicode characters
-            # sent = normalize('NFD', sent)
-            # line = line.encode('ascii', 'ignore')
-            # line = line.decode('UTF-8')
-            # remove control characters
-            sent = remove_control_characters(sent)
-            # remove URLs
-            sent = re.sub(r'http[s]?://[^\s<>"]+|www\.[^\s<>"]+', ' URL ', sent)
-            # remove Twitter handles
-            sent = re.sub(r'(^|[^@\w])@(\w{1,15})\b', ' USER ', sent)
-            # alter language-specific abbreviations etc. [sic]
-            sent = prepare_line(sent, lang, 'lookup')
-            # tokenize more intelligently (TODO should this just use WordPunctTokenizer too?)
-            tokens = word_tokenize(sent, 'english' if lang == 'en' else 'swedish')
-            # convert to lowercase
-            # line = [word.lower() for word in line]
-            # remove punctuation from each token
-            # line = [word.translate(table) for word in line]
-            # remove non-ascii chars form each token
-            # sent = [re_print.sub('', w) for w in sent]
-            # remove tokens with non-alphas in them (would remove exclamation, question marks etc.)
-            # sent = [word for word in sent if word.isalpha()]
-            # store as string
-            clean_pair.append(' '.join(tokens))
+            joined = clean_line(sent, lang)
+            clean_pair.append(joined)
         cleaned.append(clean_pair)
+        print('.', end=('\n' if pair_idx % 80 == 0 else ''))  # print a dot for each input line
+        sys.stdout.flush()
     return array(cleaned)
 
+_intab = "”"
+_outtab = "\""
+_trantab = str.maketrans(_intab, _outtab)
 
-# load dataset
-filename = lang2 + '.txt'
-doc = load_doc(filename)
-# split into english-german pairs
-pairs = to_pairs(doc)
-# clean sentences
-clean_pairs = clean_pairs(pairs, ['en', 'sv'])
-# save clean pairs to file
-save_clean_data(clean_pairs)
-# spot check
-for i in range(100):
-    print('[%s] => [%s]' % (clean_pairs[i, 0], clean_pairs[i, 1]))
+def clean_line(sent, lang):
+    # normalize unicode characters
+    # sent = normalize('NFD', sent)
+    # line = line.encode('ascii', 'ignore')
+    # line = line.decode('UTF-8')
+    # remove control characters
+    sent = remove_control_characters(sent)
+    # remove URLs
+    sent = re.sub(r'http[s]?://[^\s<>"]+|www\.[^\s<>"]+', ' URL ', sent)
+    # remove Twitter handles
+    sent = re.sub(r'(^|[^@\w])@(\w{1,15})\b', ' USER ', sent)
+    # remove prices
+    sent = re.sub(r'[$\u20AC\u00A3]\d+[.,]?\d{0,2}', 'PRICE', sent)
+    # replace special quotes with ascii quotes
+    sent = sent.translate(_trantab)
+    # replace Unicode characters with ascii equivalents
+    # sent = unidecode(sent)
+    # alter language-specific abbreviations etc. [sic]
+    sent = prepare_line(sent, lang, 'lookup')
+    return sent
+   # # tokenize more intelligently (TODO should this just use WordPunctTokenizer too?)
+   # tokens = word_tokenize(sent, 'english' if lang == 'en' else 'swedish')
+   # # convert to lowercase
+   # # line = [word.lower() for word in line]
+   # # remove punctuation from each token
+   # # line = [word.translate(table) for word in line]
+   # # remove non-ascii chars form each token
+   # # sent = [re_print.sub('', w) for w in sent]
+   # # remove tokens with non-alphas in them (would remove exclamation, question marks etc.)
+   # # sent = [word for word in sent if word.isalpha()]
+   # # store as string
+   # joined = ' '.join(tokens)
+   # return joined
+
+
+if __name__ == '__main__':
+    # load dataset
+    filename = lang2 + '.txt'
+    doc = load_doc(filename)
+    # split into english-german pairs
+    pairs = to_pairs(doc)
+    # clean sentences
+    clean_pairs = clean_pairs(pairs, ['en', 'sv'])
+    # save clean pairs to file
+    save_clean_data(clean_pairs)
+    # spot check
+    for i in range(100):
+        print('[%s] => [%s]' % (clean_pairs[i, 0], clean_pairs[i, 1]))
