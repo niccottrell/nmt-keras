@@ -4,6 +4,8 @@ from pickle import dump
 from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
+from keras import optimizers
+
 from numpy import array
 
 from nltk.stem import WordNetLemmatizer
@@ -28,8 +30,10 @@ lang2 = 'sve'
 version = '201807b'
 
 
-# Remove control charactesr in a unicode-aware way
 def remove_control_characters(s):
+    """
+    Remove control characters in a unicode-aware way
+    """
     return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
 
 
@@ -54,6 +58,7 @@ def load_clean_sentences(subset=None):
 # save a list of clean sentences to file
 def save_clean_data(sentences, subset=None):
     filename = get_filename(subset)
+    dump(sentences, open(filename, 'wb'))
     print('Saved {0} to {1}'.format(sentences.shape, filename))
 
 
@@ -225,7 +230,7 @@ def prepare_line(line, lang='en', lc_first=None):
     # add spaces before punctuation
     line = regex_endpunct.sub(" \g<1>", line)
     # language-specific fixes
-    if (lang is 'en'):
+    if lang is 'en':
         line = re.sub(r'\'m\s+', ' am ', line)
         line = re.sub(r'\b(s?he|it)\'s\s+', r'\1 is ', line, flags=re.IGNORECASE)
         line = re.sub(r'(\w+)\'s\s+', r" \1 's ", line)
@@ -373,12 +378,19 @@ models = {
     'simple': simple_model,
     #     'dense': dense_model
 }
+
 tokenizers = {
     'a': simple_lines,
     'b': hyphenate_lines,
     'c': word2phrase_lines,
     'd': replace_proper_lines,
-    'e': pos_tag_lines}
+    'e': pos_tag_lines
+}
 
-# optimizer='rmsprop'
-optimizer = 'adam'
+# key becomes part of the model name, the value is passed in the optimizer= parameter
+optimizers = {
+    'sgd': 'sgd',  # default parameters (reported to be more 'stable' than adam)
+    'rmsprop': 'sgd',  # default lr=0.001
+    'rmsprop2': optimizers.RMSprop(lr=0.01),  # same as previous but with 10x higher learning rate
+    'adam': 'adam'
+}
