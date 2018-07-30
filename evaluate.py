@@ -5,11 +5,13 @@ from nltk.translate.bleu_score import corpus_bleu
 
 from helpers import *
 
-# generate target given source sequence
+
 def predict_sequence(model, tokenizer, source):
     """
-
+    generate target given source sequence
+    :type model: Model
     :type tokenizer: Tokenizer
+    :type source: The input data
     """
     prediction = model.predict(source, verbose=0)[0]
     integers = [argmax(vector) for vector in prediction]
@@ -22,8 +24,14 @@ def predict_sequence(model, tokenizer, source):
     return ' '.join(target)
 
 
-# evaluate the skill of the model
 def evaluate_model(model, tokenizer, sources, raw_dataset):
+    """
+    evaluate the skill of the model
+    :param model: Model
+    :param tokenizer: Tokenizer
+    :param sources: The
+    :param raw_dataset: The dataset prior to tokenizer (i.e. actual strings)
+    """
     actual, predicted = list(), list()
     for i, source in enumerate(sources):
         # translate encoded source text
@@ -42,7 +50,7 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
 
 
 def eval_model(model_name, tokenizer_func):
-    print('### About to evaluate model: ' + model_name)
+    print('### About to evaluate model %s with tokenizer %s' % (model_name, tokenizer_func.__name__))
     # load datasets
     dataset = load_clean_sentences('both')
     train = load_clean_sentences('train')
@@ -54,16 +62,17 @@ def eval_model(model_name, tokenizer_func):
     other_tokenizer = create_tokenizer(tokenizer_func(dataset_lang2, lang2))
     other_tokenized = tokenizer_func(dataset_lang2, lang2)
     other_length = max_length(other_tokenized)
-    # prepare/encode/pad data (pad to length of target language) TODO: What if eng_length > other_length ??
+    # prepare/encode/pad data (pad to length of target language)
     trainX = encode_sequences(other_tokenizer, other_length, tokenizer_func(train[:, 1], lang2))
     testX = encode_sequences(other_tokenizer, other_length, tokenizer_func(test[:, 1], lang2))
     # load model
     model = load_model('checkpoints/' + model_name + '.h5')
+    print(model.summary())
     # test on some training sequences
-    print('Evaluating training set: ' + train)
+    print('Evaluating training set: train=%s, trainX=%s' % (str(train.shape), str(trainX.shape)))
     evaluate_model(model, eng_tokenizer, trainX, train)
     # test on some test sequences
-    print('Evaluating testing set')
+    print('Evaluating testing set: test=%s, testX=%s' % (str(test.shape), str(testX.shape)))
     evaluate_model(model, eng_tokenizer, testX, test)
 
 
@@ -71,8 +80,12 @@ def evaluate_all():
     for model_name, model_func in models.items():
         for token_id, tokenizer in tokenizers.items():
             # save each one
-            model_name = model_name + '_' + token_id + '_' + version
-            eval_model(model_name, tokenizer)
+            filename = model_name + '_' + token_id  # + '_' + version
+            try:
+                eval_model(filename, tokenizer)
+            except:
+                traceback.print_exc()
+                pass
 
 
 evaluate_all()
