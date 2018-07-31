@@ -7,3 +7,4 @@ nltk
 hunspell
 pyphen
 unidecode
+regex

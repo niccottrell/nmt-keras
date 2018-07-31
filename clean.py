@@ -26,6 +26,8 @@ def to_pairs(doc):
     pairs = [line.split('\t') for line in lines]
     return pairs
 
+# prepare regex for char filtering
+re_print = re.compile('[^%s]' % re.escape(string.printable))
 
 # clean a list of lines
 def clean_pairs(lines, langs):
@@ -34,8 +36,6 @@ def clean_pairs(lines, langs):
     """
     print("Cleaning %d pairs" % len(lines))
     cleaned = list()
-    # prepare regex for char filtering
-    re_print = re.compile('[^%s]' % re.escape(string.printable))
     # prepare translation table for removing punctuation
     # table = str.maketrans('', '', string.punctuation)
     for pair_idx, pair in enumerate(lines):
@@ -50,15 +50,15 @@ def clean_pairs(lines, langs):
         sys.stdout.flush()
     return array(cleaned)
 
-_intab = "”"
-_outtab = "\""
+_intab = "\u201C\u201D\u2018\u2019"
+_outtab = "\"\"''"
 _trantab = str.maketrans(_intab, _outtab)
 
 def clean_line(sent, lang):
     # normalize unicode characters
-    # sent = normalize('NFD', sent)
-    # line = line.encode('ascii', 'ignore')
-    # line = line.decode('UTF-8')
+    sent = unicodedata.normalize('NFD', sent)
+    # sent = sent.encode('ascii', 'ignore') # Ignores any non-ascii characters like fancy quotes
+    # sent = sent.decode('UTF-8')
     # remove control characters
     sent = remove_control_characters(sent)
     # remove URLs
@@ -70,23 +70,23 @@ def clean_line(sent, lang):
     # replace special quotes with ascii quotes
     sent = sent.translate(_trantab)
     # replace Unicode characters with ascii equivalents
-    # sent = unidecode(sent)
+    if (lang == 'sv'): sent = unidecode(sent) # since the POS tagger for Swedish doesn't accept utf8
     # alter language-specific abbreviations etc. [sic]
     sent = prepare_line(sent, lang, 'lookup')
-    return sent
    # # tokenize more intelligently (TODO should this just use WordPunctTokenizer too?)
    # tokens = word_tokenize(sent, 'english' if lang == 'en' else 'swedish')
    # # convert to lowercase
    # # line = [word.lower() for word in line]
    # # remove punctuation from each token
    # # line = [word.translate(table) for word in line]
-   # # remove non-ascii chars form each token
-   # # sent = [re_print.sub('', w) for w in sent]
+    # remove non-ascii chars form each token
+    # sent = [re_print.sub('', w) for w in sent]
    # # remove tokens with non-alphas in them (would remove exclamation, question marks etc.)
    # # sent = [word for word in sent if word.isalpha()]
    # # store as string
    # joined = ' '.join(tokens)
    # return joined
+    return sent
 
 
 if __name__ == '__main__':

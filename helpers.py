@@ -16,7 +16,8 @@ import traceback
 
 import hunspell
 import unicodedata
-import re
+import re # standard regex system
+import regex # better regex system
 import nltk
 import string
 import pyphen
@@ -49,7 +50,7 @@ def load_clean_sentences(subset=None):
     """
     load a clean dataset
     :param subset: str
-    :return:
+    :return: ndarray
     """
     filename = get_filename(subset)
     return load(open(filename, 'rb'))
@@ -148,6 +149,8 @@ def pos_tag_tokens(line, lang):
     return tuples
 
 
+re_print = re.compile('[^%s]' % re.escape(string.printable))
+
 def replace_proper(line, lang):
     """
     Append part-of-speech tags to each word, keeping the units as a list
@@ -239,7 +242,9 @@ def prepare_line(line, lang='en', lc_first=None):
     # tokenize on space
     words = line.split(' ')
     # lowercase if found in dictionary
-    if lc_first == 'lookup' and is_in_dict(words[0], lang): words[0] = words[0].lower()
+    if lc_first == 'lookup':
+        idx = 1 if is_punct(words[0]) else 0
+        if is_in_dict(words[idx], lang): words[idx] = words[idx].lower()
     rejoined = ' '.join(words).strip()
     return rejoined
 
@@ -267,6 +272,10 @@ def is_in_dict(word, lang):
     else:
         raise Exception("Do not support language: " + lang)
     return hobj.spell(word)
+
+
+def is_punct(str):
+    return regex.match(r"\p{P}+", str)
 
 
 def hyphenate(word, lang):
