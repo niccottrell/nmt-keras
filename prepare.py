@@ -6,7 +6,7 @@ from helpers import *
 raw_dataset = load_clean_sentences()
 
 # reduce dataset size
-n_sentences = 32000
+n_sentences = raw_dataset.shape[0]
 n_test = 2000
 idx_cutoff = n_sentences - n_test
 
