@@ -46,7 +46,9 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
     print('BLEU-1: %f' % corpus_bleu(actual, predicted, weights=(1.0, 0, 0, 0)))
     print('BLEU-2: %f' % corpus_bleu(actual, predicted, weights=(0.5, 0.5, 0, 0)))
     print('BLEU-3: %f' % corpus_bleu(actual, predicted, weights=(0.3, 0.3, 0.3, 0)))
-    print('BLEU-4: %f' % corpus_bleu(actual, predicted, weights=(0.25, 0.25, 0.25, 0.25)))
+    bleu4 = corpus_bleu(actual, predicted, weights=(0.25, 0.25, 0.25, 0.25))
+    print('BLEU-4: %f' % bleu4)
+    return bleu4
 
 
 def eval_model(model_name, tokenizer_func):
@@ -73,19 +75,26 @@ def eval_model(model_name, tokenizer_func):
     evaluate_model(model, eng_tokenizer, trainX, train)
     # test on some test sequences
     print('Evaluating testing set: test=%s, testX=%s' % (str(test.shape), str(testX.shape)))
-    evaluate_model(model, eng_tokenizer, testX, test)
+    test_bleu4 = evaluate_model(model, eng_tokenizer, testX, test)
+    return test_bleu4
 
 
 def evaluate_all():
+    summary = {}
     for model_name, model_func in models.items():
         for token_id, tokenizer in tokenizers.items():
-            # save each one
-            filename = model_name + '_' + token_id  # + '_' + version
-            try:
-                eval_model(filename, tokenizer)
-            except:
-                traceback.print_exc()
-                pass
+            for opt_id, optimizer in optimizers.items():
+                # save each one
+                filename = model_name + '_' + token_id + ' ' + opt_id + ' ' + version
+                try:
+                    test_bleu4 = eval_model(filename, tokenizer)
+                    summary[filename] = test_bleu4
+                except:
+                    traceback.print_exc()
+                    pass
+    # print out the summary test BLEU-4 scores
+    for model_name, score in summary.items():
+        print('%s=%f' % (model_name, score))
 
 
 evaluate_all()
