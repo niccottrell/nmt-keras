@@ -46,8 +46,9 @@ def clean_pairs(lines, langs):
             joined = clean_line(sent, lang)
             clean_pair.append(joined)
         cleaned.append(clean_pair)
-        print('.', end=('\n' if pair_idx % 80 == 0 else ''))  # print a dot for each input line
-        sys.stdout.flush()
+        if (pair_idx % 10 == 0):
+            print('.', end=('\n' if pair_idx % 800 == 0 else ''))  # print a dot for each 10 input lines
+            sys.stdout.flush()
     return array(cleaned)
 
 _intab = "\u201C\u201D\u2018\u2019"
@@ -56,7 +57,8 @@ _trantab = str.maketrans(_intab, _outtab)
 
 def clean_line(sent, lang):
     # normalize unicode characters
-    sent = unicodedata.normalize('NFD', sent)
+    sent = unicodedata.normalize('NFC', sent)
+    # sent = unicodedata.normalize('NFD', sent)
     # sent = sent.encode('ascii', 'ignore') # Ignores any non-ascii characters like fancy quotes
     # sent = sent.decode('UTF-8')
     # remove control characters
@@ -67,10 +69,12 @@ def clean_line(sent, lang):
     sent = re.sub(r'(^|[^@\w])@(\w{1,15})\b', ' USER ', sent)
     # remove prices
     sent = re.sub(r'[$\u20AC\u00A3]\d+[.,]?\d{0,2}', 'PRICE', sent)
+    # change any remaining euro symbols to dollar :(
+    sent = re.sub(r'[\u20AC\u00A3]', '$', sent)
     # replace special quotes with ascii quotes
     sent = sent.translate(_trantab)
     # replace Unicode characters with ascii equivalents
-    if (lang == 'sv'): sent = unidecode(sent) # since the POS tagger for Swedish doesn't accept utf8
+    # if (lang == 'sv'): sent = unidecode(sent) # since the POS tagger for Swedish doesn't accept utf8 # unidecode removes ASCII Swedish characters too :(
     # alter language-specific abbreviations etc. [sic]
     sent = prepare_line(sent, lang, 'lookup')
    # # tokenize more intelligently (TODO should this just use WordPunctTokenizer too?)
