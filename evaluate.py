@@ -85,7 +85,7 @@ def evaluate_all():
         for token_id, tokenizer in tokenizers.items():
             for opt_id, optimizer in optimizers.items():
                 # save each one
-                filename = model_name + '_' + token_id + ' ' + opt_id + ' ' + version
+                filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
                 try:
                     test_bleu4 = eval_model(filename, tokenizer)
                     summary[filename] = test_bleu4

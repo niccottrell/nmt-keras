@@ -16,8 +16,8 @@ import traceback
 
 import hunspell
 import unicodedata
-import re # standard regex system
-import regex # better regex system
+import re  # standard regex system
+import regex  # better regex system
 import nltk
 import string
 import pyphen
@@ -28,7 +28,7 @@ nltk.download('averaged_perceptron_tagger')
 
 lang2 = 'sve'
 
-version = '201807b'
+version = '201808a'
 
 
 def remove_control_characters(s):

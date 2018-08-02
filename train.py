@@ -8,7 +8,9 @@ from helpers import *
 
 epochs = 60
 
-n_units = 256 # Dimensionality of the LSTM layers
+n_units = 256  # Dimensionality of word-embedding (and so LSTM layer)
+
+batch_size = 64 # TODO: Is this batch size too big?
 
 def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     """
@@ -16,7 +18,6 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     :param model_function: the function to define the model
     :param tokenizer_func: the function to tokenize input strings
     :param filename: the model name (no extension)
-    :return:
     """
     print("About to train model %s with tokenizer %s and optimizer %s"
           % (model_function.__name__, tokenizer_func.__name__, optimizer))
@@ -57,17 +58,20 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     print(model.summary())
     plot_model(model, to_file=('checkpoints/' + filename + '.png'), show_shapes=True)
     # fit model
-    checkpoint = ModelCheckpoint('checkpoints/'+ filename + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+    checkpoint = ModelCheckpoint('checkpoints/' + filename + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     # the model is saved via a callback checkpoint
-    model.fit(trainX, trainY, epochs=epochs, batch_size=64, validation_data=(testX, testY), callbacks=[checkpoint],
-              verbose=2)
+    model.fit(trainX, trainY, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=2)
 
 def train_all():
     """Train the models and tokenizer permutations"""
     for model_name, model_func in models.items():
         for token_id, tokenizer in tokenizers.items():
-            # save each one
-            train_save(model_func, tokenizer, model_name + '_' + token_id+ ' ' + version, optimizer)
+            for opt_id, optimizer in optimizers.items():
+                # save each one
+                filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
+                train_save(model_func, tokenizer, filename, optimizer)
 
-# Start the training
-train_all()
+
+if __name__ == '__main__':
+    # Start the training
+    train_all()
