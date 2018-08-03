@@ -388,6 +388,9 @@ def encode_sequences(tokenizer, max_length, lines):
     :param lines: list(list(str)
     :return: Numpy array
     """
+    # check for None
+    for line in lines:
+        if None in line: raise ValueError('Found None value in line', line)
     # integer encode sequences
     X = tokenizer.texts_to_sequences(lines)
     # pad sequences with 0 values

@@ -80,9 +80,9 @@ def train_model(lines, min_count=5, threshold=25.0, sep='_'):
     vocab_iter, train_iter = tee(lines)
     # Get a frequency table
     vocab, train_words = learn_vocab_from_train_iter(vocab_iter)
-    print("word2phrase.train_model: raw vocab=%d, train_words=%d" % (len(vocab), train_words))
+    # print("word2phrase.train_model: raw vocab=%d, train_words=%d" % (len(vocab), train_words))
     vocab = filter_vocab(vocab, min_count)
-    print("word2phrase.train_model: filtered vocab=%d" % len(vocab))
+    # print("word2phrase.train_model: filtered vocab=%d" % len(vocab))
 
     yield from apply(train_iter, vocab, train_words, sep, min_count, threshold)
 

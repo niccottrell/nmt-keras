@@ -19,13 +19,14 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     :param tokenizer_func: the function to tokenize input strings
     :param filename: the model name (no extension)
     """
-    print("About to train model %s with tokenizer %s and optimizer %s"
+    print("\n###\nAbout to train model %s with tokenizer %s and optimizer %s\n###\n\n"
           % (model_function.__name__, tokenizer_func.__name__, optimizer))
     # load datasets
     dataset = load_clean_sentences('both')
     train = load_clean_sentences('train')
     test = load_clean_sentences('test')
-    # prepare english tokenizer
+
+    print("Prepare english tokenizer")
     dataset_lang1 = dataset[:, 0]
     eng_tokenized = tokenizer_func(dataset_lang1, 'en')
     eng_tokenizer = create_tokenizer(eng_tokenized)
@@ -33,7 +34,8 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     eng_length = max_length(eng_tokenized)
     print('English Vocabulary Size: %d' % eng_vocab_size)
     print('English Max Length: %d' % eng_length)
-    # prepare other language tokenizer
+
+    print("Prepare other language tokenizer")
     dataset_lang2 = dataset[:, 1]
     other_tokenized = tokenizer_func(dataset_lang2, lang2)
     other_tokenizer = create_tokenizer(other_tokenized)
@@ -42,22 +44,22 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     print('Other Vocabulary Size: %d' % other_vocab_size)
     print('Other Max Length: %d' % other_length)
 
-    # prepare training data
+    print("Prepare training data")
     trainX = encode_sequences(other_tokenizer, other_length, tokenizer_func(train[:, 1], lang2))
     trainY = encode_sequences(eng_tokenizer, eng_length, tokenizer_func(train[:, 0], 'en'))
     trainY = encode_output(trainY, eng_vocab_size)
-    # prepare validation data
+    print("Prepare validation data")
     testX = encode_sequences(other_tokenizer, other_length, tokenizer_func(test[:, 1], lang2))
     testY = encode_sequences(eng_tokenizer, eng_length, tokenizer_func(test[:, 0], 'en'))
     testY = encode_output(testY, eng_vocab_size)
 
-    # define model
+    print("Define and compile model")
     model = model_function(other_vocab_size, eng_vocab_size, other_length, eng_length, n_units)
     model.compile(optimizer=optimizer, loss='categorical_crossentropy')
     # summarize defined model
     print(model.summary())
     plot_model(model, to_file=('checkpoints/' + filename + '.png'), show_shapes=True)
-    # fit model
+    print("Fit model")
     checkpoint = ModelCheckpoint('checkpoints/' + filename + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     # the model is saved via a callback checkpoint
     model.fit(trainX, trainY, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=2)
@@ -69,7 +71,12 @@ def train_all():
             for opt_id, optimizer in optimizers.items():
                 # save each one
                 filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
-                train_save(model_func, tokenizer, filename, optimizer)
+                try:
+                    train_save(model_func, tokenizer, filename, optimizer)
+                except:
+                    print("Error training model: " + filename)
+                    traceback.print_exc()
+                    pass
 
 
 if __name__ == '__main__':
