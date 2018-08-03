@@ -22,6 +22,8 @@ from __future__ import division
 from itertools import tee, zip_longest
 from collections import defaultdict
 
+import re
+
 def pairwise(iterable):
     """
     Adjacent pairs with overlap
@@ -31,6 +33,9 @@ def pairwise(iterable):
     a, b = tee(iterable)
     next(b)
     return zip_longest(a, b)
+
+# regex to detect words
+r_letters = re.compile(r'[^\W\d_]', re.U)
 
 def learn_vocab_from_train_iter(train_iter):
     """
@@ -44,10 +49,11 @@ def learn_vocab_from_train_iter(train_iter):
         if line == []:  # If there are multiple empty lines following each other, the loop is broken
             continue  # without giving any errors. That line solves the problem. (Ahmet Aksoy 20160721)
         for pair in pairwise(line):
-            vocab[pair[0]] += 1
-            if None not in pair:
-                vocab[pair] += 1
-            train_words += 1
+            if r_letters.match(pair[0]):
+                vocab[pair[0]] += 1
+                if None not in pair and r_letters.match(pair[1]):
+                    vocab[pair] += 1
+                train_words += 1
     return vocab, train_words
 
 def filter_vocab(vocab, min_count):
@@ -56,12 +62,12 @@ def filter_vocab(vocab, min_count):
     """
     return dict((k, v) for k, v in vocab.items() if v >= min_count)
 
-def train_model(train_iter, min_count=5, threshold=100.0, sep='_'):
+def train_model(lines, min_count=5, threshold=25.0, sep='_'):
     """
     The whole file-to-file (or in this case iterator to iterator) enchilada
     Does the same thing as Mikolov's original TrainModel in word2phrase.c
     Parameters:
-    train_iter : an iterator containing tokenized documents
+    lines : an iterator containing tokenized documents
         Example: [['hi', 'there', 'friend'],['coffee', 'is', 'enjoyable']]
     min_count : min number of mentions for filter_vocab to keep word
     threshold : pairs of words w/ score >= threshold are marked as phrases.
@@ -71,13 +77,28 @@ def train_model(train_iter, min_count=5, threshold=100.0, sep='_'):
     Yields:
         One list per row in input train_iter
     """
-    vocab_iter, train_iter = tee(train_iter)
+    vocab_iter, train_iter = tee(lines)
+    # Get a frequency table
     vocab, train_words = learn_vocab_from_train_iter(vocab_iter)
     print("word2phrase.train_model: raw vocab=%d, train_words=%d" % (len(vocab), train_words))
     vocab = filter_vocab(vocab, min_count)
     print("word2phrase.train_model: filtered vocab=%d" % len(vocab))
 
-    for line in train_iter:
+    yield from apply(train_iter, vocab, train_words, sep, min_count, threshold)
+
+
+def apply(lines, vocab, train_words, sep='_', min_count=5, threshold=25.0):
+    """
+
+    :param lines: list(list(str)) pre-tokenized lines
+    :param min_count:
+    :param sep: the separator to use
+    :param threshold: the threshold for merging words
+    :param train_words: The number of words seen in the training set
+    :param vocab: the frequency map from the training set
+    :return: list(list(str)) the same lines but with phrases combined
+    """
+    for line in lines:
         out_sentence = []
         pairs = pairwise(line)
         for pair in pairs:

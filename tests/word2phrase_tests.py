@@ -1,5 +1,7 @@
 import unittest
 from thirdparty.word2phrase import train_model
+from helpers import word2phrase_lines
+
 
 class Word2PhraseTests(unittest.TestCase):
 
@@ -12,3 +14,13 @@ class Word2PhraseTests(unittest.TestCase):
         for row in out:
             print(row)
             self.assertIn('New_York', row)
+
+    def test_real_en(self):
+        """
+        Test through the helper which will train on the dataset
+        """
+        lines = ['Take a few days off.']
+        out = word2phrase_lines(lines, 'en')
+        for row in out:
+            print(row)
+            self.assertIn('a_few', row)

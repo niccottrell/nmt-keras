@@ -198,19 +198,39 @@ def replace_proper_lines(lines, lang):
 
 def word2phrase_lines(lines, lang):
     """
-    Convert all inputs to chunked phrases
-    :param lines: list(str)
+    Convert all line inputs to tokenized chunked phrases
+    :param lines: list(str) The lines to process this time
     :param lang: str The language code (but ignored for now)
     :return: list(list(str))
     """
     # Pre-split the lines
     tokenized_lines = simple_lines(lines, lang)
-    # Now chunk into phrases
+
+    # Import the required functions
+    from thirdparty.word2phrase import learn_vocab_from_train_iter, filter_vocab, apply
+
+    # settings
+    min_count = 3
+    threshold = 25
+
+    # TODO: we should cache this and only 'train' once per session per language
+    dataset_both = load_clean_sentences('both')
+    # prepare english tokenizer
+    lang_idx = 0 if lang == 'en' else 1
+    dataset_thislang = dataset_both[:, lang_idx]
+    dataset_tokenized = simple_lines(dataset_thislang, lang)
+
+    # vocab_iter, train_iter = tee(tokenized_lines)
+    vocab, train_words = learn_vocab_from_train_iter(dataset_tokenized)
+    print("word2phrase.train_model: raw vocab=%d, dataset_thislang=%d" % (len(vocab), train_words))
+    vocab = filter_vocab(vocab, min_count)
+    print("word2phrase.train_model: filtered vocab=%d" % len(vocab))
+
+    # Now apply it to these lines
+    lines = apply(tokenized_lines, vocab, train_words, '_', min_count, threshold)
+
     result = []
-    from thirdparty.word2phrase import train_model
-    # TODO: we should train the phrases once on the entire dataset, then apply this to the test and train sets
-    model = train_model(tokenized_lines)  # Uses defaults since we're assuming a large (>>1000 lines) input
-    for row in model:
+    for row in lines:
         result.append(row)  # train_model
     return result
 
