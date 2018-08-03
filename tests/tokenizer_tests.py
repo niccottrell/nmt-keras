@@ -19,6 +19,10 @@ class TokenizerTests(unittest.TestCase):
         self.assertTrue(is_in_dict('dög', 'sv'))
         self.assertFalse(is_in_dict('dug', 'sv'))
 
+    def test_hunpos_tagger_cache(self):
+        self.assertTrue(pos_tag_lines(['the dog'], 'en'))
+        self.assertTrue(pos_tag_lines(['a dog'], 'en'))
+
     def test_is_proper_sv(self):
         # Yakuhako is a made up string
         self.assertTrue(is_proper('Yakuhako', 'sv'))
@@ -77,7 +81,7 @@ class TokenizerTests(unittest.TestCase):
     def test_pos_tag_sve(self):
         res_list = pos_tag(['Den', 'såg', 'billig', 'ut', '.'], lang='sve')
         self.assertEqual(
-            ['Den.PN', 'såg.VB', 'billig.JJ', 'ut.AB', '.'], # where AB=adverb
+            ['Den.PN', 'såg.VB', 'billig.JJ', 'ut.AB', '.'],  # where AB=adverb
             res_list)
 
     def test_pos_tag_utf8(self):

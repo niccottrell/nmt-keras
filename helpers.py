@@ -131,6 +131,8 @@ def pos_tag_lines(lines, lang):
         tagged_lines.append(pos_tag(line, lang))
     return tagged_lines
 
+# keep HunposTaggers loaded
+ht_cache = {}
 
 def pos_tag_tokens(line, lang):
     """
@@ -138,13 +140,19 @@ def pos_tag_tokens(line, lang):
     :type line: list(str) An already tokenized line
     """
     iso3 = ('sve' if lang[:2] == 'sv' else 'eng')
-    if (iso3 == 'eng'):
-        model = 'en_wsj.model'
-        enc = 'utf-8'
-    else:  # Swedish
-        model = 'suc-suctags.model'
-        enc = 'ISO-8859-1'
-    ht = HunposTagger(model, path_to_bin='./hunpos-tag', encoding=enc)
+    if iso3 in ht_cache:
+        ht = ht_cache[iso3]
+    else:
+        if (iso3 == 'eng'):
+            model = 'en_wsj.model'
+            enc = 'utf-8'
+        else:  # Swedish
+            model = 'suc-suctags.model'
+            enc = 'ISO-8859-1'
+        # build the tagger
+        ht = HunposTagger(model, path_to_bin='./hunpos-tag', encoding=enc)
+        # cache it
+        ht_cache[iso3] = ht
     tuples = ht.tag(line)
     return tuples
 
