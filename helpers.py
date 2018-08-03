@@ -158,6 +158,7 @@ def pos_tag_tokens(line, lang):
 
 
 re_print = re.compile('[^%s]' % re.escape(string.printable))
+re_punct_digits = re.compile("[\d€{}]+$".format(re.escape(string.punctuation)))
 
 def replace_proper(line, lang):
     """
@@ -168,12 +169,11 @@ def replace_proper(line, lang):
     """
     inside_proper = False
     proper_idx = 1
-    pattern = re.compile("[\d€{}]+$".format(re.escape(string.punctuation)))
     try:
         tuples = pos_tag_tokens(line, lang)
         result = []
         for tuple in tuples:
-            if pattern.match(tuple[0]):  # It's just punctuation/digits/symbols
+            if re_punct_digits.match(tuple[0]):  # It's just punctuation/digits/symbols
                 result.append(tuple[0])
             else:
                 pos = tuple[1].decode('utf-8')
