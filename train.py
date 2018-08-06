@@ -5,10 +5,11 @@ from keras.callbacks import ModelCheckpoint
 from keras.utils.vis_utils import plot_model
 
 from helpers import *
+import numpy as np
 
 epochs = 60
 
-n_units = 256  # Dimensionality of word-embedding (and so LSTM layer)
+latent_dim = 256  # Dimensionality of word-embedding (and so LSTM layer)
 
 batch_size = 64 # TODO: Is this batch size too big?
 
@@ -54,7 +55,7 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     testY = encode_output(testY, eng_vocab_size)
 
     print("Define and compile model")
-    model = model_function(other_vocab_size, eng_vocab_size, other_length, eng_length, n_units)
+    model = model_function(other_vocab_size, eng_vocab_size, other_length, eng_length)
     model.compile(optimizer=optimizer, loss='categorical_crossentropy')
     # summarize defined model
     print(model.summary())
@@ -62,7 +63,30 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     print("Fit model")
     checkpoint = ModelCheckpoint('checkpoints/' + filename + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     # the model is saved via a callback checkpoint
-    model.fit(trainX, trainY, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=2)
+    if model_function == simple.simple_model:
+        X = trainX
+        y = trainY
+    else: # the dense/attention model
+        X = [trainX, trainY]
+        # prepare decoder target offset by 1
+        y = offset_data(trainY)
+    # where `X` is Training data and `y` are Target values
+    # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=2)
+    model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
+
+
+def offset_data(trainY):
+    decoder_target_data = np.zeros_like(trainY)  # same dtype
+    for sent_idx, blah in enumerate(trainY):
+        for pos_idx, vals in enumerate(blah):
+            # where pos_idx is the position in the sentence, 0 = first word
+            # and val is the one-hot encoding: 0 or 1
+            if pos_idx > 0:
+                # decoder_target_data will be ahead by one timestep
+                # and will not include the start value.
+                decoder_target_data[sent_idx, pos_idx - 1] = vals
+    return decoder_target_data
+
 
 def train_all():
     """Train the models and tokenizer permutations"""

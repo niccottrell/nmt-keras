@@ -22,7 +22,7 @@ import nltk
 import string
 import pyphen
 
-from models import *
+from models import attention,simple
 
 nltk.download('averaged_perceptron_tagger')
 
@@ -400,17 +400,18 @@ def encode_sequences(tokenizer, max_length, lines):
 
 def encode_output(sequences, vocab_size):
     """
-    one hot encode target sequence
-    :param sequences: Numpy array
-    :param vocab_size: int
-    :return: reshaped Numpy array?
+    one hot encode target sequence ?
+    Converts a class vector (integers) to binary class matrix.
+    :param sequences: Numpy array of integers (first level is a sentence, second is each word index) shape=(num_sentences, max_length)
+    :param vocab_size: int: Create one class per vocab in this target language?
+    :return: reshaped Numpy array now with 3 dimensions but one-hot encoded; shape=(num_sentences, max_length, vocab_size)
     """
-    ylist = list()
+    y_list = list()
     for sequence in sequences:
         encoded = to_categorical(sequence, num_classes=vocab_size)
-        ylist.append(encoded)
-    y = array(ylist)
-    y = y.reshape(sequences.shape[0], sequences.shape[1], vocab_size)
+        y_list.append(encoded)
+    y_array = array(y_list)
+    y = y_array.reshape(sequences.shape[0], sequences.shape[1], vocab_size)
     return y
 
 
@@ -429,8 +430,8 @@ tokenizers = {
 
 # key becomes part of the model name, the value is passed in the optimizer= parameter
 optimizers = {
-    'sgd': 'sgd',  # default parameters (reported to be more 'stable' than adam)
-    'rmsprop': 'sgd',  # default lr=0.001
-    'rmsprop2': optimizers.RMSprop(lr=0.01),  # same as previous but with 10x higher learning rate
+   # 'sgd': 'sgd',  # default parameters (reported to be more 'stable' than adam)
+   # 'rmsprop': 'sgd',  # default lr=0.001
+   # 'rmsprop2': optimizers.RMSprop(lr=0.01),  # same as previous but with 10x higher learning rate
     'adam': 'adam'
 }
