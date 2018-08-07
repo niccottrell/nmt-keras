@@ -7,7 +7,7 @@ from keras.utils.vis_utils import plot_model
 from helpers import *
 import numpy as np
 
-epochs = 60
+epochs = 20
 
 latent_dim = 256  # Dimensionality of word-embedding (and so LSTM layer)
 
@@ -67,12 +67,17 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
         X = trainX
         y = trainY
     else: # the dense/attention model
+        # Need to encode the
+        trainX = encode_output(trainX, other_vocab_size)
+        testX = encode_output(testX, other_vocab_size)
         X = [trainX, trainY]
+        testX = [testX, testY]
         # prepare decoder target offset by 1
         y = offset_data(trainY)
+        testY = offset_data(testY)
     # where `X` is Training data and `y` are Target values
-    # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=2)
-    model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
+    # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
+    model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=2)
 
 
 def offset_data(trainY):

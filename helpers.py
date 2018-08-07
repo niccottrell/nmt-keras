@@ -416,16 +416,16 @@ def encode_output(sequences, vocab_size):
 
 
 models = {
-    'simple': simple_model,
-    #     'dense': dense_model
+   # 'simple': simple.simple_model,
+   'dense': attention.dense_model
 }
 
 tokenizers = {
-    'a': simple_lines,
-    'b': hyphenate_lines,
-    'c': word2phrase_lines,
-    'd': replace_proper_lines,
-    'e': pos_tag_lines
+     'a': simple_lines,
+    # 'b': hyphenate_lines,
+    # 'c': word2phrase_lines,
+    # 'd': replace_proper_lines,
+    # 'e': pos_tag_lines
 }
 
 # key becomes part of the model name, the value is passed in the optimizer= parameter

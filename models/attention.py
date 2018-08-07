@@ -35,23 +35,22 @@ def dense_model(src_vocab, target_vocab, src_timesteps, target_timesteps, n_unit
 
 def prepare(src_vocab, target_vocab, latent_dim):
     # Define an input sequence and process it.
-    encoder_inputs = Input(shape=(None,))
+    encoder_inputs = Input(shape=(None,src_vocab))
     # Add an embedding layer to process the integer encoded words to give some 'sense' before the LSTM layer
-    encoder_embedding = Embedding(src_vocab, latent_dim)(encoder_inputs)
+    # encoder_embedding = Embedding(src_vocab, latent_dim)(encoder_inputs)
     # The return_state contructor argument configures a RNN layer to return a list where the first entry is the outputs
     # and the next entries are the internal RNN states. This is used to recover the states of the encoder.
     encoder_lstm = LSTM(latent_dim, return_state=True)
-    encoder_outputs, state_h, state_c = encoder_lstm(encoder_embedding)
+    encoder_outputs, state_h, state_c = encoder_lstm(encoder_inputs)
     # We discard `encoder_outputs` and only keep the states.
     encoder_states = [state_h, state_c]
     # Set up the decoder, using `encoder_states` as initial state of the RNN.
-    decoder_inputs = Input(shape=(None,))
-    decoder_embedding = Embedding(target_vocab, latent_dim)(decoder_inputs)
+    decoder_inputs = Input(shape=(None,target_vocab))
+    # decoder_embedding = Embedding(target_vocab, latent_dim)(decoder_inputs)
     # The return_sequences constructor argument, configuring a RNN to return its full sequence of outputs (instead of
     # just the last output, which the defaults behavior).
-    decoder_lstm = LSTM(latent_dim, return_sequences=True)
-    decoder_outputs_interim = decoder_lstm(decoder_embedding,
-                                                 initial_state=encoder_states)
+    decoder_lstm = LSTM(latent_dim, return_sequences=True, return_state=True)
+    decoder_outputs_interim, _, _  = decoder_lstm(decoder_inputs, initial_state=encoder_states)
     # Attach through a dense layer
     decoder_dense = Dense(target_vocab, activation='softmax')
     decoder_outputs = decoder_dense(decoder_outputs_interim)
