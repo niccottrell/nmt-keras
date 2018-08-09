@@ -34,6 +34,7 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     print("Prepare english tokenizer")
     dataset_lang1 = dataset[:, 0]
     eng_tokenized = tokenizer_func(dataset_lang1, 'en')
+    if model_function != simple.simple_model: eng_tokenized = mark_ends(eng_tokenized)
     eng_tokenizer = create_tokenizer(eng_tokenized)
     eng_vocab_size = len(eng_tokenizer.word_index) + 1
     eng_length = max_length(eng_tokenized)
@@ -51,13 +52,18 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
 
     print("Prepare training data")
     trainX = encode_sequences(other_tokenizer, other_length, tokenizer_func(train[:, 1], lang2))
-    trainY = encode_sequences(eng_tokenizer, eng_length, tokenizer_func(train[:, 0], 'en'))
+    train_tokenized = tokenizer_func(train[:, 0], 'en')
+    if model_function != simple.simple_model: train_tokenized = mark_ends(train_tokenized)
+    trainY = encode_sequences(eng_tokenizer, eng_length, train_tokenized)
     trainY = encode_output(trainY, eng_vocab_size)
     print("Prepare validation data")
     testX = encode_sequences(other_tokenizer, other_length, tokenizer_func(test[:, 1], lang2))
-    testY = encode_sequences(eng_tokenizer, eng_length, tokenizer_func(test[:, 0], 'en'))
+    validation_tokenized = tokenizer_func(test[:, 0], 'en')
+    if model_function != simple.simple_model: validation_tokenized = mark_ends(validation_tokenized)
+    testY = encode_sequences(eng_tokenizer, eng_length, validation_tokenized)
     testY = encode_output(testY, eng_vocab_size)
 
+    print("\n")
     try:
         # try and load checkpointed model to continue
         model = load_model('checkpoints/' + filename + '.h5')

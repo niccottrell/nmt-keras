@@ -1,5 +1,6 @@
 """
-This module defines the various models that will be tested
+This module defines the various models that will be tested.
+Based on a character-level model at https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
 """
 from keras.layers import Dense
 from keras.layers import Embedding
@@ -87,19 +88,19 @@ def infer_dense(src_vocab, target_vocab, src_timesteps, target_timesteps, n_unit
     return decoder_model
 
 
-def decode_sequence(input_seq, num_decoder_tokens):
+def decode_sequence(input_seq, target_vocab):
     """
-
+    Decode (translate) the input sequence into natural language in the target language
     :param input_seq:
-    :param num_decoder_tokens: int: the target vocab size
-    :return:
+    :param target_vocab: int: the target vocab size
+    :return: the target language sentence output
 
     """
     # Encode the input as state vectors.
     states_value = encoder_model.predict(input_seq)
 
     # Generate empty target sequence of length 1.
-    target_seq = np.zeros((1, 1, num_decoder_tokens))
+    target_seq = np.zeros((1, 1, target_vocab))
     # Populate the first character of target sequence with the start character.
     target_seq[0, 0, target_token_index['\t']] = 1.
 
@@ -112,17 +113,17 @@ def decode_sequence(input_seq, num_decoder_tokens):
 
         # Sample a token
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
-        sampled_char = reverse_target_char_index[sampled_token_index]
-        decoded_sentence += sampled_char
+        sampled_word = reverse_target_char_index[sampled_token_index]
+        decoded_sentence += sampled_word
 
         # Exit condition: either hit max length
         # or find stop character.
-        if (sampled_char == '\n' or
+        if (sampled_word == '\n' or
            len(decoded_sentence) > max_decoder_seq_length):
             stop_condition = True
 
         # Update the target sequence (of length 1).
-        target_seq = np.zeros((1, 1, num_decoder_tokens))
+        target_seq = np.zeros((1, 1, target_vocab))
         target_seq[0, 0, sampled_token_index] = 1.
 
         # Update states

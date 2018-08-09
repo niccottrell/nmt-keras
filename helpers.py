@@ -28,7 +28,7 @@ nltk.download('averaged_perceptron_tagger')
 
 lang2 = 'swe'
 
-version = '201808a'
+version = '201808b'
 
 
 def remove_control_characters(s):
@@ -383,9 +383,9 @@ def word_for_id(integer, tokenizer):
 def encode_sequences(tokenizer, max_length, lines):
     """
     encode and pad sequences
-    :param tokenizer: Tokenizer
+    :param tokenizer: Tokenizer to map from word to integer and back
     :param max_length: int Pad the sequence up to this length
-    :param lines: list(list(str)
+    :param lines: list(list(str): Already tokenized lines (normally words, but also phrases or sub-words)
     :return: Numpy array
     """
     # check for None
@@ -414,6 +414,18 @@ def encode_output(sequences, vocab_size):
     y = y_array.reshape(sequences.shape[0], sequences.shape[1], vocab_size)
     return y
 
+
+def mark_ends(lines_tokenized):
+    """
+    Marks the ends of each lines with special tokens.
+    Used for target sentences, to help track the beginning on end of sentences when doing inference with attention
+    :param lines_tokenized: list(list(str)) tokenized lines
+    :return: list(list(str))
+    """
+    output = []
+    for line in lines_tokenized:
+        output.append(['\t'] + line + ['\n'])
+    return output
 
 models = {
    # 'simple': simple.simple_model,
