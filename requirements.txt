@@ -8,3 +8,4 @@ hunspell
 pyphen
 unidecode
 regex
+pydot

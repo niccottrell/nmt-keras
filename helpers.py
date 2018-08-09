@@ -26,7 +26,7 @@ from models import attention,simple
 
 nltk.download('averaged_perceptron_tagger')
 
-lang2 = 'sve'
+lang2 = 'swe'
 
 version = '201808a'
 

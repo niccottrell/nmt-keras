@@ -3,15 +3,19 @@ This module trains a model and stores it in a file
 """
 from keras.callbacks import ModelCheckpoint
 from keras.utils.vis_utils import plot_model
+from keras.models import load_model
 
 from helpers import *
 import numpy as np
+import tensorflow as tf
 
 epochs = 20
 
 latent_dim = 256  # Dimensionality of word-embedding (and so LSTM layer)
 
 batch_size = 64 # TODO: Is this batch size too big?
+
+print ("VERSION", tf.Session(config=tf.ConfigProto(log_device_placement=True)))
 
 def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     """
@@ -54,9 +58,15 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     testY = encode_sequences(eng_tokenizer, eng_length, tokenizer_func(test[:, 0], 'en'))
     testY = encode_output(testY, eng_vocab_size)
 
-    print("Define and compile model")
-    model = model_function(other_vocab_size, eng_vocab_size, other_length, eng_length)
-    model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+    try:
+        # try and load checkpointed model to continue
+        model = load_model('checkpoints/' + filename + '.h5')
+        print("Loaded checkpointed model")
+    except:
+        print("Define and compile model")
+        model = model_function(other_vocab_size, eng_vocab_size, other_length, eng_length)
+        model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+
     # summarize defined model
     print(model.summary())
     plot_model(model, to_file=('checkpoints/' + filename + '.png'), show_shapes=True)
