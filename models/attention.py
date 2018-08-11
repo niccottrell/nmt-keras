@@ -3,12 +3,15 @@ This module defines the various models that will be tested.
 Based on a character-level model at https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
 """
 from keras.layers import Dense
-from keras.layers import Embedding
 from keras.layers import Input, LSTM
 from keras.models import Model
+
 import numpy as np
 
+import helpers; print(helpers.__file__)
+
 training_model = None
+
 encoder_model = None
 decoder_model = None
 
@@ -67,20 +70,19 @@ def prepare(src_vocab, target_vocab, latent_dim):
     # Output will be the next target token
     # 3) Repeat with the current target token and current states
     # Define sampling models
-    if 1==2:
-        global encoder_model
-        encoder_model = Model(encoder_inputs, encoder_states)
-        decoder_state_input_h = Input(shape=(latent_dim,))
-        decoder_state_input_c = Input(shape=(latent_dim,))
-        decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
-        # Use decoder_lstm from the training model
-        decoder_outputs, state_h, state_c = decoder_lstm(decoder_embedding, initial_state=decoder_states_inputs)
-        decoder_states = [state_h, state_c]
-        decoder_outputs = decoder_dense(decoder_outputs)
-        global decoder_model
-        decoder_model = Model(
-            [decoder_inputs] + decoder_states_inputs,
-            [decoder_outputs] + decoder_states)
+    global encoder_model
+    encoder_model = Model(encoder_inputs, encoder_states)
+    decoder_state_input_h = Input(shape=(latent_dim,))
+    decoder_state_input_c = Input(shape=(latent_dim,))
+    decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+    # Use decoder_lstm from the training model
+    decoder_outputs, state_h, state_c = decoder_lstm(decoder_inputs, initial_state=decoder_states_inputs)
+    decoder_states = [state_h, state_c]
+    decoder_outputs = decoder_dense(decoder_outputs)
+    global decoder_model
+    decoder_model = Model(
+        [decoder_inputs] + decoder_states_inputs,
+        [decoder_outputs] + decoder_states)
 
 
 def infer_dense(src_vocab, target_vocab, src_timesteps, target_timesteps, n_units):
@@ -88,21 +90,25 @@ def infer_dense(src_vocab, target_vocab, src_timesteps, target_timesteps, n_unit
     return decoder_model
 
 
-def decode_sequence(input_seq, target_vocab):
+def decode_sequence(input_seq, tokenizer):
     """
     Decode (translate) the input sequence into natural language in the target language
     :param input_seq:
-    :param target_vocab: int: the target vocab size
+    :param tokenizer: Tokenizer
     :return: the target language sentence output
 
     """
     # Encode the input as state vectors.
     states_value = encoder_model.predict(input_seq)
 
+    # the target vocab size (e.g. English)
+    target_vocab = decoder_model.input_shape[0][2]
+
     # Generate empty target sequence of length 1.
     target_seq = np.zeros((1, 1, target_vocab))
     # Populate the first character of target sequence with the start character.
-    target_seq[0, 0, target_token_index['\t']] = 1.
+    start_seq = tokenizer.word_index['\t'] # tokenizer.texts_to_sequences(['\t'])
+    target_seq[0, 0, start_seq] = 1.
 
     # Sampling loop for a batch of sequences
     # (to simplify, here we assume a batch of size 1).
@@ -113,7 +119,7 @@ def decode_sequence(input_seq, target_vocab):
 
         # Sample a token
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
-        sampled_word = reverse_target_char_index[sampled_token_index]
+        sampled_word = helpers.word_for_id(sampled_token_index, tokenizer)
         decoded_sentence += sampled_word
 
         # Exit condition: either hit max length
@@ -121,6 +127,8 @@ def decode_sequence(input_seq, target_vocab):
         if (sampled_word == '\n' or
            len(decoded_sentence) > max_decoder_seq_length):
             stop_condition = True
+        else:
+            decoded_sentence += ' '
 
         # Update the target sequence (of length 1).
         target_seq = np.zeros((1, 1, target_vocab))

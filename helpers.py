@@ -72,10 +72,10 @@ def create_tokenizer(lines) -> Tokenizer:
     return create_tokenizer_simple(lines)
 
 
-# Tokenize lines on spaces (not preserved) - don't lowercase, but filter out most punctuation, tabs and newlines
+# Tokenize lines on spaces (not preserved) - don't lowercase, but filter out most punctuation
 def create_tokenizer_simple(lines) -> Tokenizer:
     tokenizer = Tokenizer(
-        filters='"#$%&()*+-/:;<=>@[\\]^_`{|}~\t\n',
+        filters='"#$%&()*+-/:;<=>@[\\]^_`{|}~', # Don't filter \t and \n since we use them as sequence markers
         lower=False)  # Since in German (at least) case has significance; In English, it tends to indicate Proper nouns
     tokenizer.fit_on_texts(lines)
     return tokenizer
@@ -400,7 +400,7 @@ def encode_sequences(tokenizer, max_length, lines):
 
 def encode_output(sequences, vocab_size):
     """
-    one hot encode target sequence ?
+    one hot encode target sequence
     Converts a class vector (integers) to binary class matrix.
     :param sequences: Numpy array of integers (first level is a sentence, second is each word index) shape=(num_sentences, max_length)
     :param vocab_size: int: Create one class per vocab in this target language?
