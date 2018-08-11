@@ -22,7 +22,7 @@ def summarize_tokenizers():
         eng_length = max_length(eng_lines)
         print('English Vocabulary Size: %d' % eng_vocab_size)
         print('English Max Length: %d' % eng_length)
-        # prepare german tokenizer
+        # prepare other (source language) tokenizer
         dataset_lang2 = dataset[:, 1]
         other_tokenized = tokenizer_func(dataset_lang2, lang2)
         for i, source in enumerate(other_tokenized):

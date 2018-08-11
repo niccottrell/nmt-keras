@@ -9,7 +9,7 @@ from helpers import *
 import numpy as np
 import tensorflow as tf
 
-epochs = 20
+epochs_default = 20
 
 latent_dim = 256  # Dimensionality of word-embedding (and so LSTM layer)
 
@@ -17,7 +17,7 @@ batch_size = 64 # TODO: Is this batch size too big?
 
 print ("VERSION", tf.Session(config=tf.ConfigProto(log_device_placement=True)))
 
-def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
+def train_save(model_function, tokenizer_func, filename, optimizer='adam', epochs=epochs_default):
     """
     Trains a given model with tokenizer and checkpoints it to a file for later
     :param model_function: the function to define the model
@@ -73,6 +73,9 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
         model = model_function(other_vocab_size, eng_vocab_size, other_length, eng_length)
         model.compile(optimizer=optimizer, loss='categorical_crossentropy')
 
+    if epochs == 0:  # a 'hack' to prepare the models without actually doing any fitting
+        return
+
     # summarize defined model
     print(model.summary())
     plot_model(model, to_file=('checkpoints/' + filename + '.png'), show_shapes=True)
@@ -83,7 +86,7 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
         X = trainX
         y = trainY
     else: # the dense/attention model
-        # Need to encode the
+        # Need to encode the source input
         trainX = encode_output(trainX, other_vocab_size)
         testX = encode_output(testX, other_vocab_size)
         X = [trainX, trainY]
