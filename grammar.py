@@ -33,5 +33,5 @@ def sample_all():
                 print('Evaluating manual set: ' + model_name)
                 evaluate_model(model, eng_tokenizer, trainX, train)
 
-
-sample_all()
+if __name__ == '__main__':
+    sample_all()

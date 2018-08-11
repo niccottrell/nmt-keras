@@ -114,4 +114,5 @@ def evaluate_all():
         print('%s=%f' % (model_name, score))
 
 
-evaluate_all()
+if __name__ == '__main__':
+    evaluate_all()
