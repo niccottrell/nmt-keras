@@ -2,6 +2,7 @@ from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 import numpy as np
 from helpers import *
+import os.path
 
 CH_START = '\t'
 CH_END = '\n'
@@ -9,6 +10,7 @@ CH_END = '\n'
 batch_size = 64  # Batch size for training.
 epochs = 100  # Number of epochs to train for.
 latent_dim = 256  # Latent dimensionality of the encoding space.
+continue_training = True
 
 # Vectorize the data.
 input_texts = []
@@ -93,14 +95,22 @@ decoder_outputs = decoder_dense(decoder_outputs)
 # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
 model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
-# Run training
 model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
-model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
+
+fname = 's2s.h5'
+found_existing = os.path.isfile(fname)
+if found_existing:
+    # Load the previous weights
+    model.load_weights(fname)
+
+if continue_training:
+    # Run training
+    model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
           batch_size=batch_size,
           epochs=epochs,
           validation_split=0.2)
-# Save model
-model.save('s2s.h5')
+    # Save model
+    model.save(fname)
 
 # Next: inference mode (sampling).
 # Here's the drill:
@@ -133,6 +143,10 @@ reverse_target_char_index = dict(
 
 
 def decode_sequence(input_seq):
+    """
+    :param input_seq: tuple(1, src_vocab, max_length_src) one-hot encoded
+    :return: str: translated natural language
+    """
     # Encode the input as state vectors.
     states_value = encoder_model.predict(input_seq)
 
@@ -146,8 +160,8 @@ def decode_sequence(input_seq):
     stop_condition = False
     decoded_sentence = ''
     while not stop_condition:
-        output_tokens, h, c = decoder_model.predict(
-            [target_seq] + states_value)
+        model_input = [target_seq] + states_value
+        output_tokens, h, c = decoder_model.predict(model_input)
 
         # Sample a token
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
