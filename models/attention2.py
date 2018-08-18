@@ -69,24 +69,18 @@ def infer_models(model, latent_dim=256):
     # target_vocab = model.output_shape[2]
 
     encoder_inputs = model.input[0]  # name=enc_inputs (Input(shape=(None,)))
-    # encoder_inputs = model.get_layer(name='enc_inputs') # (Input(shape=(None,)))
     encoder_lstm = model.get_layer(name='encoder_lstm')
     encoder_outputs, state_h_enc, state_c_enc = encoder_lstm.output  # lstm_1 (LSTM(latent_dim, return_state=True))
     encoder_states = [state_h_enc, state_c_enc]
     encoder_model = Model(encoder_inputs, encoder_states)
 
-    # decoder_inputs = model.get_layer(name='dec_inputs')  # (Input(shape=(None,)))
     decoder_inputs = model.input[1] # (Input(shape=(None,)))
-    decoder_embedding = model.get_layer(name='dec_embedding') # (Embedding(target_vocab, latent_dim, ...))
-    # decoder_inputs = Input(shape=(None,), name='dec_inputs2')
-    # decoder_embedding = Embedding(target_vocab, latent_dim, name='dec_embedding2')(decoder_inputs)
+    decoder_embedding = model.get_layer(name='dec_embedding')(decoder_inputs) # (Embedding(target_vocab, latent_dim, ...))
     decoder_state_input_h = Input(shape=(latent_dim,), name='input_3')  # named to avoid conflict
     decoder_state_input_c = Input(shape=(latent_dim,), name='input_4')
     decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
     # Use decoder_lstm from the training model
-    # decoder_lstm = model.layers[5] # dec_lstm
     decoder_lstm = model.get_layer(name='dec_lstm') # dec_lstm
-    # decoder_lstm = LSTM(latent_dim, return_sequences=True, name='dec_lstm2')
     decoder_outputs, state_h, state_c = decoder_lstm(decoder_embedding, initial_state=decoder_states_inputs)
     decoder_states = [state_h, state_c]
     # decoder_dense = model.layers[6]  # name=dec_outputs, should match Dense(target_vocab, activation='softmax')
