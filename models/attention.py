@@ -1,6 +1,6 @@
 """
 This module defines the various models that will be tested.
-Based on a character-level model at https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
+Based on a character-level model at https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py and lstm_seq2seq_restore.py and https://github.com/roatienza/Deep-Learning-Experiments/blob/master/keras/seq2seq/seq2seq_translate.py
 """
 from keras.layers import Dense
 from keras.layers import Input, LSTM
@@ -8,17 +8,15 @@ from keras.models import Model
 
 import numpy as np
 
-import helpers; print(helpers.__file__)
+import helpers
 
-training_model = None
-
-encoder_model = None
-decoder_model = None
+print(helpers.__file__)
 
 # Assume a problem is the decoded length exceeds this
-max_decoder_seq_length=40
+max_decoder_seq_length = 40
 
-def dense_model(src_vocab, target_vocab, src_timesteps, target_timesteps, n_units=256):
+
+def dense_model(src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
     """
     To train:
     encoder_input_data is a 3D array of shape (num_pairs, max_english_sentence_length, num_english_characters) containing a one-hot vectorization of the English sentences.
@@ -26,42 +24,40 @@ def dense_model(src_vocab, target_vocab, src_timesteps, target_timesteps, n_unit
     decoder_target_data is the same as decoder_input_data but offset by one timestep. decoder_target_data[:, t, :] will be the same as decoder_input_data[:, t + 1, :].
     Requires teacher forcing
     See also https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
-    :param src_vocab:
-    :param target_vocab:
+    :param src_vocab: int: the number of different tokens/words in the source language
+    :param target_vocab: int: the number of different tokens/words in the target language
     :param src_timesteps: int: max sentence length of source language (English)
     :param target_timesteps: max sentence length of target language (Swedish)
-    :param n_units:
+    :param latent_dim: the dimensionality of the
     :return: The training model
     """
-    prepare(src_vocab, target_vocab, n_units)
-    return training_model
 
-
-def prepare(src_vocab, target_vocab, latent_dim):
     # Define an input sequence and process it.
-    encoder_inputs = Input(shape=(None,src_vocab))
-    # Add an embedding layer to process the integer encoded words to give some 'sense' before the LSTM layer
-    # encoder_embedding = Embedding(src_vocab, latent_dim)(encoder_inputs)
-    # The return_state contructor argument configures a RNN layer to return a list where the first entry is the outputs
+    encoder_inputs = Input(shape=(None, src_vocab))
+    # The return_state constructor argument configures a RNN layer to return a list where the first entry is the outputs
     # and the next entries are the internal RNN states. This is used to recover the states of the encoder.
-    encoder_lstm = LSTM(latent_dim, return_state=True)
-    encoder_outputs, state_h, state_c = encoder_lstm(encoder_inputs)
+    encoder = LSTM(latent_dim, return_sequences=True)(encoder_inputs)
+    encoder_outputs, state_h, state_c = LSTM(latent_dim, return_state=True)(encoder)
+
     # We discard `encoder_outputs` and only keep the states.
     encoder_states = [state_h, state_c]
     # Set up the decoder, using `encoder_states` as initial state of the RNN.
-    decoder_inputs = Input(shape=(None,target_vocab))
+    decoder_inputs = Input(shape=(None, target_vocab))
     # decoder_embedding = Embedding(target_vocab, latent_dim)(decoder_inputs)
     # The return_sequences constructor argument, configuring a RNN to return its full sequence of outputs (instead of
     # just the last output, which the defaults behavior).
     decoder_lstm = LSTM(latent_dim, return_sequences=True, return_state=True)
-    decoder_outputs_interim, _, _  = decoder_lstm(decoder_inputs, initial_state=encoder_states)
+    decoder_outputs_interim, _, _ = decoder_lstm(decoder_inputs, initial_state=encoder_states)
     # Attach through a dense layer
     decoder_dense = Dense(target_vocab, activation='softmax')
     decoder_outputs = decoder_dense(decoder_outputs_interim)
     # Define the model that will turn
     # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
-    global training_model
     training_model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
+    return training_model
+
+
+def infer_models(model, latent_dim=256):
     # Next: inference mode (sampling).
     # Here's the drill:
     # 1) encode input and retrieve initial decoder state
@@ -70,34 +66,41 @@ def prepare(src_vocab, target_vocab, latent_dim):
     # Output will be the next target token
     # 3) Repeat with the current target token and current states
     # Define sampling models
-    global encoder_model
+
+    encoder_inputs = model.input[0]  # input_1 (Input(shape=(None, src_vocab)))
+    encoder_outputs, state_h_enc, state_c_enc = model.layers[3].output  # lstm_1 (LSTM(latent_dim, return_state=True))
+    encoder_states = [state_h_enc, state_c_enc]
     encoder_model = Model(encoder_inputs, encoder_states)
-    decoder_state_input_h = Input(shape=(latent_dim,))
-    decoder_state_input_c = Input(shape=(latent_dim,))
+
+    decoder_inputs = model.input[1]  # input_2 (Input(shape=(None, target_vocab)))
+    decoder_state_input_h = Input(shape=(latent_dim,), name='input_3') # named to avoid conflict
+    decoder_state_input_c = Input(shape=(latent_dim,), name='input_4')
     decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
     # Use decoder_lstm from the training model
+    decoder_lstm = LSTM(latent_dim, return_sequences=True, return_state=True)
     decoder_outputs, state_h, state_c = decoder_lstm(decoder_inputs, initial_state=decoder_states_inputs)
     decoder_states = [state_h, state_c]
+    decoder_dense = model.layers[5]  # should match Dense(target_vocab, activation='softmax')
     decoder_outputs = decoder_dense(decoder_outputs)
-    global decoder_model
     decoder_model = Model(
         [decoder_inputs] + decoder_states_inputs,
         [decoder_outputs] + decoder_states)
 
-
-def infer_dense(src_vocab, target_vocab, src_timesteps, target_timesteps, n_units):
-    prepare(src_vocab, target_vocab, n_units)
-    return decoder_model
+    return (encoder_model, decoder_model)
 
 
-def decode_sequence(input_seq, tokenizer):
+def decode_sequence(input_seq, model, tokenizer):
     """
     Decode (translate) the input sequence into natural language in the target language
-    :param input_seq:
+    :param input_seq: The one-hot encoded 3-d numpy array
+    :param model: Model
     :param tokenizer: Tokenizer
     :return: the target language sentence output
 
     """
+
+    encoder_model, decoder_model = infer_models(model)
+
     # Encode the input as state vectors.
     states_value = encoder_model.predict(input_seq)
 
@@ -125,7 +128,7 @@ def decode_sequence(input_seq, tokenizer):
         # Exit condition: either hit max length
         # or find stop character.
         if (sampled_word == '\n' or
-           len(decoded_sentence) > max_decoder_seq_length):
+                len(decoded_sentence) > max_decoder_seq_length):
             stop_condition = True
         else:
             decoded_sentence += ' '
