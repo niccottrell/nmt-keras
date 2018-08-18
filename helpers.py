@@ -22,13 +22,13 @@ import nltk
 import string
 import pyphen
 
-from models import attention,simple
+from models import attention2, simple, attention
 
 nltk.download('averaged_perceptron_tagger')
 
 lang2 = 'swe'
 
-version = '201808b'
+version = '201808c'
 
 
 def remove_control_characters(s):
@@ -75,7 +75,7 @@ def create_tokenizer(lines) -> Tokenizer:
 # Tokenize lines on spaces (not preserved) - don't lowercase, but filter out most punctuation
 def create_tokenizer_simple(lines) -> Tokenizer:
     tokenizer = Tokenizer(
-        filters='"#$%&()*+-/:;<=>@[\\]^_`{|}~', # Don't filter \t and \n since we use them as sequence markers
+        filters='"#$%&()*+-/:;<=>@[\\]^_`{|}~',  # Don't filter \t and \n since we use them as sequence markers
         lower=False)  # Since in German (at least) case has significance; In English, it tends to indicate Proper nouns
     tokenizer.fit_on_texts(lines)
     return tokenizer
@@ -380,11 +380,11 @@ def word_for_id(integer, tokenizer):
     return None
 
 
-def encode_sequences(tokenizer, max_length, lines):
+def encode_sequences(tokenizer, lines, pad_length=None):
     """
-    encode and pad sequences
+    encode words to integer and pad sequences (if desired)
     :param tokenizer: Tokenizer to map from word to integer and back
-    :param max_length: int Pad the sequence up to this length
+    :param pad_length: int Pad the sequence up to this length
     :param lines: list(list(str): Already tokenized lines (normally words, but also phrases or sub-words)
     :return: Numpy array
     """
@@ -393,8 +393,9 @@ def encode_sequences(tokenizer, max_length, lines):
         if None in line: raise ValueError('Found None value in line', line)
     # integer encode sequences
     X = tokenizer.texts_to_sequences(lines)
-    # pad sequences with 0 values
-    X = pad_sequences(X, maxlen=max_length, padding='post')
+    # pad sequences with 0 values (only if specified)
+    if pad_length != None:
+        X = pad_sequences(X, maxlen=pad_length, padding='post')
     return X
 
 
@@ -427,9 +428,11 @@ def mark_ends(lines_tokenized):
         output.append(['\t'] + line + ['\n'])
     return output
 
+
 models = {
    # 'simple': simple.simple_model,
-   'dense': attention.dense_model
+   # 'dense': attention.dense_model
+    'dense2': attention2.dense_model
 }
 
 tokenizers = {
