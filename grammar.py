@@ -17,7 +17,7 @@ def sample_all():
             # prepare english tokenizer
             dataset_lang1 = full_dataset[:, 0]
             eng_tokenized = tokenizer_func(dataset_lang1, 'en')
-            if model_name == 'dense': eng_tokenized = mark_ends(eng_tokenized)
+            if model_name.startswith('dense'): eng_tokenized = mark_ends(eng_tokenized)
             eng_tokenizer = create_tokenizer(eng_tokenized)
             # prepare other tokenizer
             dataset_lang2 = full_dataset[:, 1]

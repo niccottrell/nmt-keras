@@ -38,16 +38,16 @@ def dense_model(src_vocab, target_vocab, src_timesteps, target_timesteps, latent
     # The return_state constructor argument configures a RNN layer to return a list where the first entry is the outputs
     # and the next entries are the internal RNN states. This is used to recover the states of the encoder.
     encoder_outputs, state_h, state_c = LSTM(latent_dim,
-                                        return_state=True, name='encoder_lstm')(encoder_embedding)
+                                             return_state=True, name='encoder_lstm')(encoder_embedding)
     # We discard `encoder_outputs` and only keep the states.
     encoder_states = [state_h, state_c]
 
     # Set up the decoder, using `encoder_states` as initial state of the RNN.
-    decoder_inputs = Input(shape=(None, ), name='dec_inputs')
+    decoder_inputs = Input(shape=(None,), name='dec_inputs')
     decoder_embedding = Embedding(target_vocab, latent_dim, name='dec_embedding')(decoder_inputs)
     # The return_sequences constructor argument, configuring a RNN to return its full sequence of outputs (instead of
     # just the last output, which the defaults behavior).
-    decoder_lstm = LSTM(latent_dim, return_sequences=True, name='dec_lstm')(decoder_embedding, initial_state=encoder_states)
+    decoder_lstm, _, _ = LSTM(latent_dim, return_sequences=True, return_state=True, name='dec_lstm')(decoder_embedding, initial_state=encoder_states)
     decoder_outputs = Dense(target_vocab, activation='softmax', name='dec_outputs')(decoder_lstm)
 
     # Define the model that will turn
@@ -74,8 +74,8 @@ def infer_models(model, latent_dim=256):
     encoder_states = [state_h_enc, state_c_enc]
     encoder_model = Model(encoder_inputs, encoder_states)
 
-    decoder_inputs = model.input[1] # (Input(shape=(None,)))
-    decoder_embedding = model.get_layer(name='dec_embedding')(decoder_inputs) # (Embedding(target_vocab, latent_dim, ...))
+    decoder_inputs = model.input[1]  # (Input(shape=(None,)))
+    decoder_embedding = model.get_layer(name='dec_embedding')(decoder_inputs)  # (Embedding(target_vocab, latent_dim, ...))
     decoder_state_input_h = Input(shape=(latent_dim,), name='input_3')  # named to avoid conflict
     decoder_state_input_c = Input(shape=(latent_dim,), name='input_4')
     decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
@@ -109,14 +109,11 @@ def decode_sequence(input_seq, model, tokenizer):
     # Encode the input as state vectors.
     states_value = encoder_model.predict(input_seq)
 
-    # the target vocab size (e.g. English)
-    target_vocab = decoder_model.input_shape[0][2]
-
     # Generate empty target sequence of length 1.
-    target_seq = np.zeros((1, 1, target_vocab))
+    # target_seq = np.zeros((1, 1, target_vocab))
     # Populate the first character of target sequence with the start character.
-    start_seq = tokenizer.word_index['\t']  # tokenizer.texts_to_sequences(['\t'])
-    target_seq[0, 0, start_seq] = 1.
+    start_seq = tokenizer.word_index['\t']
+    target_seq = [start_seq]
 
     # Sampling loop for a batch of sequences
     # (to simplify, here we assume a batch of size 1).
@@ -128,19 +125,18 @@ def decode_sequence(input_seq, model, tokenizer):
         # Sample a token
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_word = helpers.word_for_id(sampled_token_index, tokenizer)
-        decoded_sentence += sampled_word
 
         # Exit condition: either hit max length
         # or find stop character.
-        if (sampled_word == '\n' or
+        if (sampled_word == '\n' or sampled_word is None or
                 len(decoded_sentence) > max_decoder_seq_length):
             stop_condition = True
         else:
-            decoded_sentence += ' '
+            decoded_sentence += sampled_word + ' '
 
         # Update the target sequence (of length 1).
-        target_seq = np.zeros((1, 1, target_vocab))
-        target_seq[0, 0, sampled_token_index] = 1.
+        # target_seq.append(sampled_token_index)
+        target_seq[0] = sampled_token_index
 
         # Update states
         states_value = [h, c]
