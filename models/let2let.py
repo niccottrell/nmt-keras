@@ -1,5 +1,10 @@
+"""
+A letter-by-letter model for translation with Keras
+Based on https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
+"""
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense
+from keras.callbacks import ModelCheckpoint
 import numpy as np
 from helpers import *
 import os.path
@@ -8,9 +13,12 @@ CH_START = '\t'
 CH_END = '\n'
 
 batch_size = 64  # Batch size for training.
-epochs = 100  # Number of epochs to train for.
+epochs = 10  # Number of epochs to train for.
 latent_dim = 256  # Latent dimensionality of the encoding space.
-continue_training = True
+
+# mode = 'restart' # Start from default weights
+mode = 'continue' # Load previous weights and continue fitting
+# mode = 'readonly' # Use the pretrained model but don't do any more fitting
 
 # Vectorize the data.
 input_texts = []
@@ -21,8 +29,8 @@ target_characters = set()
 lines = load_clean_sentences('both')
 
 for line in lines:
-    input_text = line[1] # Swedish
-    target_text = line[0] # English
+    input_text = line[1]  # Swedish
+    target_text = line[0]  # English
     # We use "tab" as the "start sequence" character
     # for the targets, and "\n" as "end sequence" character.
     target_text = CH_START + target_text + CH_END
@@ -76,8 +84,8 @@ for i, (input_text, target_text) in enumerate(zip(input_texts, target_texts)):
 
 # Define an input sequence and process it.
 encoder_inputs = Input(shape=(None, num_encoder_tokens))
-encoder = LSTM(latent_dim, return_state=True)
-encoder_outputs, state_h, state_c = encoder(encoder_inputs)
+encoder_lstm = LSTM(latent_dim, return_state=True)
+encoder_outputs, state_h, state_c = encoder_lstm(encoder_inputs)
 # We discard `encoder_outputs` and only keep the states.
 encoder_states = [state_h, state_c]
 
@@ -87,9 +95,9 @@ decoder_inputs = Input(shape=(None, num_decoder_tokens))
 # and to return internal states as well. We don't use the
 # return states in the training model, but we will use them in inference.
 decoder_lstm = LSTM(latent_dim, return_sequences=True, return_state=True)
-decoder_outputs, _, _ = decoder_lstm(decoder_inputs, initial_state=encoder_states)
+decoder_outputs_interim, _, _ = decoder_lstm(decoder_inputs, initial_state=encoder_states)
 decoder_dense = Dense(num_decoder_tokens, activation='softmax')
-decoder_outputs = decoder_dense(decoder_outputs)
+decoder_outputs = decoder_dense(decoder_outputs_interim)
 
 # Define the model that will turn
 # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
@@ -97,18 +105,21 @@ model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
 model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
 
-fname = 's2s.h5'
-found_existing = os.path.isfile(fname)
-if found_existing:
-    # Load the previous weights
+fname = 'checkpoints/' + 's2s.h5'
+
+if (mode == 'continue' or mode == 'readonly') and os.path.isfile(fname):
+    # Load the previous model (layers and weights but NO STATE)
     model.load_weights(fname)
 
-if continue_training:
+if mode == 'continue' or mode == 'restart':
+    # Prepare checkpoints
+    checkpoint = ModelCheckpoint(fname, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     # Run training
     model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
-          batch_size=batch_size,
-          epochs=epochs,
-          validation_split=0.2)
+              batch_size=batch_size,
+              epochs=epochs,
+              validation_split=0.2,
+              callbacks=[checkpoint])
     # Save model
     model.save(fname)
 
@@ -120,19 +131,36 @@ if continue_training:
 # Output will be the next target token
 # 3) Repeat with the current target token and current states
 
-# Define sampling models
-encoder_model = Model(encoder_inputs, encoder_states)
+def prep_models(model):
+    """
+    Prepare the models from the saved one
+    :param model: The trained encoder model
+    :return: (encoder_model, decoder_model)
+    """
 
-decoder_state_input_h = Input(shape=(latent_dim,))
-decoder_state_input_c = Input(shape=(latent_dim,))
-decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
-decoder_outputs, state_h, state_c = decoder_lstm(
-    decoder_inputs, initial_state=decoder_states_inputs)
-decoder_states = [state_h, state_c]
-decoder_outputs = decoder_dense(decoder_outputs)
-decoder_model = Model(
-    [decoder_inputs] + decoder_states_inputs,
-    [decoder_outputs] + decoder_states)
+    # Redefine encoder model (needs to work even when the model has just been loaded from an h5 file)
+    encoder_inputs = model.input[0]  # input_1
+    encoder_outputs, state_h_enc, state_c_enc = model.layers[2].output  # lstm_1
+    encoder_states = [state_h_enc, state_c_enc]
+    encoder_model = Model(encoder_inputs, encoder_states)
+
+    decoder_inputs = model.input[1]   # input_2
+    decoder_state_input_h = Input(shape=(latent_dim,), name='input_3')
+    decoder_state_input_c = Input(shape=(latent_dim,), name='input_4')
+    decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+    decoder_lstm = model.layers[3]
+    decoder_outputs, state_h_dec, state_c_dec = decoder_lstm(
+        decoder_inputs, initial_state=decoder_states_inputs)
+    decoder_states = [state_h_dec, state_c_dec]
+    decoder_dense = model.layers[4]
+    decoder_outputs = decoder_dense(decoder_outputs)
+    decoder_model = Model(
+        [decoder_inputs] + decoder_states_inputs,
+        [decoder_outputs] + decoder_states)
+    return (encoder_model, decoder_model)
+
+
+encoder_model, decoder_model = prep_models(model)
 
 # Reverse-lookup token index to decode sequences back to
 # something readable.
@@ -171,7 +199,7 @@ def decode_sequence(input_seq):
         # Exit condition: either hit max length
         # or find stop character.
         if (sampled_char == CH_END or
-           len(decoded_sentence) > max_decoder_seq_length):
+                len(decoded_sentence) > max_decoder_seq_length):
             stop_condition = True
 
         # Update the target sequence (of length 1).
