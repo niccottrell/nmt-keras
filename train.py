@@ -51,17 +51,17 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam', epoch
     print('Other Max Length: %d' % other_length)
 
     print("Prepare training data")
-    trainX = encode_sequences(other_tokenizer, other_length, tokenizer_func(train[:, 1], lang2))
+    trainX = encode_sequences(other_tokenizer, tokenizer_func(train[:, 1], lang2), other_length)
     train_tokenized = tokenizer_func(train[:, 0], 'en')
     if model_function != simple.simple_model: train_tokenized = mark_ends(train_tokenized)
-    trainY = encode_sequences(eng_tokenizer, eng_length, train_tokenized)
-    trainY = encode_output(trainY, eng_vocab_size)
+    trainY = encode_sequences(eng_tokenizer, train_tokenized, eng_length)
+    if model_function == attention.dense_model:  trainY = encode_output(trainY, eng_vocab_size)
     print("Prepare validation data")
-    testX = encode_sequences(other_tokenizer, other_length, tokenizer_func(test[:, 1], lang2))
+    testX = encode_sequences(other_tokenizer, tokenizer_func(test[:, 1], lang2), other_length)
     validation_tokenized = tokenizer_func(test[:, 0], 'en')
     if model_function != simple.simple_model: validation_tokenized = mark_ends(validation_tokenized)
-    testY = encode_sequences(eng_tokenizer, eng_length, validation_tokenized)
-    testY = encode_output(testY, eng_vocab_size)
+    testY = encode_sequences(eng_tokenizer, validation_tokenized, eng_length)
+    if model_function == attention.dense_model: testY = encode_output(testY, eng_vocab_size)
 
     print("\n")
     try:
@@ -87,16 +87,22 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam', epoch
         y = trainY
     else: # the dense/attention model
         # Need to encode the source input
-        trainX = encode_output(trainX, other_vocab_size)
-        testX = encode_output(testX, other_vocab_size)
+        if model_function == attention.dense_model:
+            trainX = encode_output(trainX, other_vocab_size)
+            testX = encode_output(testX, other_vocab_size)
+        # see attention.py: [encoder_inputs, decoder_inputs]
         X = [trainX, trainY]
         testX = [testX, testY]
         # prepare decoder target offset by 1
-        y = offset_data(trainY)
-        testY = offset_data(testY)
+        if model_function == attention2.dense_model:
+            y = encode_output(offset_data(trainY), eng_vocab_size)
+            testY = encode_output(offset_data(testY), eng_vocab_size)
+        else:
+            y = offset_data(trainY)
+            testY = offset_data(testY)
     # where `X` is Training data and `y` are Target values
     # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
-    model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=2)
+    model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=1)
 
 
 def offset_data(trainY):

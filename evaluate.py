@@ -36,18 +36,24 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
     evaluate the skill of the model
     :param model: Model the model with weights already trained
     :param tokenizer: Tokenizer run on the target language dataset (identical to when the model was trained)
-    :param sources: The sequence in the other language (encoded as integers, but not yet 1-hot encoded)
+    :param sources: list(list(int)): The sequence in the other language (encoded as integers, but not yet 1-hot encoded)
     :param raw_dataset: The validation dataset language pairs prior to tokenizer (i.e. actual strings)
     """
     actual, predicted = list(), list()
     for i, source in enumerate(sources):
         # translate encoded source text
-        source = source.reshape((1, source.shape[0]))
-        if model != simple.simple_model:
+        if model.name == 'dense':
+            source = source.reshape((1, source.shape[0]))
             vocab_size = model.input_shape[0][2]
             # encode to one-hot ndarray (3-dimensions)
             source_encoded = encode_output(source, vocab_size)
-            translation = attention.decode_sequence(source_encoded, tokenizer)
+            translation = attention.decode_sequence(source_encoded, model, tokenizer)
+        elif model.name == 'dense2':
+            # source = source.reshape((1, source.shape[0]))
+            # vocab_size = model.input_shape[0][2]
+            # encode to one-hot ndarray (3-dimensions)
+            source_encoded = source# encode_output(source, vocab_size)
+            translation = attention2.decode_sequence(source_encoded, model, tokenizer)
         else:
             translation = predict_sequence(model, tokenizer, source)
         raw_target, raw_src = raw_dataset[i]
@@ -64,15 +70,15 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
     return bleu4
 
 
-def eval_model(model_name, tokenizer_func):
-    print('### About to evaluate model %s with tokenizer %s' % (model_name, tokenizer_func.__name__))
+def eval_model(filename, tokenizer_func):
+    print('### About to evaluate model %s with tokenizer %s' % (filename, tokenizer_func.__name__))
     # load datasets
     dataset = load_clean_sentences('both')
     train = load_clean_sentences('train')
     test = load_clean_sentences('test')
     # prepare english tokenizer
     eng_tokenized = tokenizer_func(dataset[:, 0], 'en')
-    if model_name.startswith('dense_'): eng_tokenized = mark_ends(eng_tokenized)
+    if filename.startswith('dense'): eng_tokenized = mark_ends(eng_tokenized)
     eng_tokenizer = create_tokenizer(eng_tokenized)
     # prepare other tokenizer
     dataset_lang2 = dataset[:, 1]
@@ -80,16 +86,17 @@ def eval_model(model_name, tokenizer_func):
     other_tokenized = tokenizer_func(dataset_lang2, lang2)
     other_length = max_length(other_tokenized)
     # prepare/encode/pad data (pad to length of target language)
-    trainX = encode_sequences(other_tokenizer, other_length, tokenizer_func(train[:, 1], lang2))
-    testX = encode_sequences(other_tokenizer, other_length, tokenizer_func(test[:, 1], lang2))
+    pad_length = other_length if filename.startswith('simple') else None
+    trainX = encode_sequences(other_tokenizer, tokenizer_func(train[:, 1], lang2), pad_length)
+    testX = encode_sequences(other_tokenizer, tokenizer_func(test[:, 1], lang2), pad_length)
     # load model
-    model = load_model('checkpoints/' + model_name + '.h5')
+    model = load_model('checkpoints/' + filename + '.h5')
     print(model.summary())
     # test on some training sequences
-    print('Evaluating training set: train=%s, trainX=%s' % (str(train.shape), str(trainX.shape)))
+    print('Evaluating training set: train=%s, trainX=%s' % (str(train), str(trainX)))
     evaluate_model(model, eng_tokenizer, trainX, train)
     # test on some test sequences
-    print('Evaluating testing set: test=%s, testX=%s' % (str(test.shape), str(testX.shape)))
+    print('Evaluating testing set: test=%s, testX=%s' % (str(test), str(testX)))
     test_bleu4 = evaluate_model(model, eng_tokenizer, testX, test)
     return test_bleu4
 
