@@ -6,6 +6,12 @@
 
 sudo yum install -y wget unzip hunspell hunspell-devel python
 
+# Install hunspell
+ln -s /usr/local/Cellar/hunspell/1.6.2/lib/libhunspell-1.6.0.dylib /usr/local/Cellar/hunspell/1.6.2/lib/libhunspell.dylib
+CFLAGS=$(pkg-config --cflags hunspell) LDFLAGS=$(pkg-config --libs hunspell) pip install hunspell
+
+# Install wget
+brew install wget
 wget http://www.manythings.org/anki/swe-eng.zip
 unzip swe-eng.zip
 
@@ -23,7 +29,7 @@ gunzip en_wsj.model.gz
 
 # sudo pip install --upgrade pip
 
-sudo pip install -r requirements.txt
+pip install -r requirements.txt
 
 sudo python setup.py install
 
