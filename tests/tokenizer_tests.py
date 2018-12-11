@@ -156,5 +156,8 @@ class TokenizerTests(unittest.TestCase):
         return res_list
 
 
+    def test_mark_ends(self):
+        self.assertEqual([['\t', 'the', 'fat', 'cat','.','\n']],  mark_ends([['the', 'fat', 'cat', '.']]))
+
 if __name__ == '__main__':
     unittest.main()

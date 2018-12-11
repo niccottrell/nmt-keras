@@ -1,9 +1,8 @@
 """
-This module defines the various models that will be tested.
-Based on a character-level model at https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py and lstm_seq2seq_restore.py and https://github.com/roatienza/Deep-Learning-Experiments/blob/master/keras/seq2seq/seq2seq_translate.py
+This module defines a word-level model based on a character-level model at https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py and lstm_seq2seq_restore.py and https://github.com/roatienza/Deep-Learning-Experiments/blob/master/keras/seq2seq/seq2seq_translate.py
+This starts with a built-in Embedding layer - which accepts a sequence of integers rather than one-hot encoded input
 """
-from keras.layers import Dense
-from keras.layers import Input, LSTM
+from keras.layers import Dense, Embedding, Input, LSTM
 from keras.models import Model
 
 import numpy as np
@@ -32,25 +31,25 @@ def dense_model(src_vocab, target_vocab, src_timesteps, target_timesteps, latent
     :return: The training model
     """
 
-    # Define an input sequence and process it.
-    encoder_inputs = Input(shape=(None, src_vocab))
+    # Define an input sequence and process it - where the shape is a sequence of integer of variable length
+    encoder_inputs = Input(shape=(None,), name='enc_inputs')
+    # Add an embedding layer to process the integer encoded words to give some 'sense' before the LSTM layer
+    encoder_embedding = Embedding(src_vocab, latent_dim, name='enc_embedding')(encoder_inputs)
     # The return_state constructor argument configures a RNN layer to return a list where the first entry is the outputs
     # and the next entries are the internal RNN states. This is used to recover the states of the encoder.
-    encoder = LSTM(latent_dim, return_sequences=True)(encoder_inputs)
-    encoder_outputs, state_h, state_c = LSTM(latent_dim, return_state=True)(encoder)
-
+    encoder_outputs, state_h, state_c = LSTM(latent_dim,
+                                             return_state=True, name='encoder_lstm')(encoder_embedding)
     # We discard `encoder_outputs` and only keep the states.
     encoder_states = [state_h, state_c]
+
     # Set up the decoder, using `encoder_states` as initial state of the RNN.
-    decoder_inputs = Input(shape=(None, target_vocab))
-    # decoder_embedding = Embedding(target_vocab, latent_dim)(decoder_inputs)
+    decoder_inputs = Input(shape=(None,), name='dec_inputs')
+    decoder_embedding = Embedding(target_vocab, latent_dim, name='dec_embedding')(decoder_inputs)
     # The return_sequences constructor argument, configuring a RNN to return its full sequence of outputs (instead of
     # just the last output, which the defaults behavior).
-    decoder_lstm = LSTM(latent_dim, return_sequences=True, return_state=True)
-    decoder_outputs_interim, _, _ = decoder_lstm(decoder_inputs, initial_state=encoder_states)
-    # Attach through a dense layer
-    decoder_dense = Dense(target_vocab, activation='softmax')
-    decoder_outputs = decoder_dense(decoder_outputs_interim)
+    decoder_lstm, _, _ = LSTM(latent_dim, return_sequences=True, return_state=True, name='dec_lstm')(decoder_embedding, initial_state=encoder_states)
+    decoder_outputs = Dense(target_vocab, activation='softmax', name='dec_outputs')(decoder_lstm)
+
     # Define the model that will turn
     # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
     training_model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
@@ -67,20 +66,26 @@ def infer_models(model, latent_dim=256):
     # 3) Repeat with the current target token and current states
     # Define sampling models
 
-    encoder_inputs = model.input[0]  # input_1 (Input(shape=(None, src_vocab)))
-    encoder_outputs, state_h_enc, state_c_enc = model.layers[3].output  # lstm_1 (LSTM(latent_dim, return_state=True))
+    # target_vocab = model.output_shape[2]
+
+    encoder_inputs = model.input[0]  # name=enc_inputs (Input(shape=(None,)))
+    encoder_lstm = model.get_layer(name='encoder_lstm')
+    encoder_outputs, state_h_enc, state_c_enc = encoder_lstm.output  # lstm_1 (LSTM(latent_dim, return_state=True))
     encoder_states = [state_h_enc, state_c_enc]
     encoder_model = Model(encoder_inputs, encoder_states)
 
-    decoder_inputs = model.input[1]  # input_2 (Input(shape=(None, target_vocab)))
-    decoder_state_input_h = Input(shape=(latent_dim,), name='input_3') # named to avoid conflict
+    decoder_inputs = model.input[1]  # (Input(shape=(None,)))
+    decoder_embedding = model.get_layer(name='dec_embedding')(decoder_inputs)  # (Embedding(target_vocab, latent_dim, ...))
+    decoder_state_input_h = Input(shape=(latent_dim,), name='input_3')  # named to avoid conflict
     decoder_state_input_c = Input(shape=(latent_dim,), name='input_4')
     decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
     # Use decoder_lstm from the training model
-    decoder_lstm = LSTM(latent_dim, return_sequences=True, return_state=True)
-    decoder_outputs, state_h, state_c = decoder_lstm(decoder_inputs, initial_state=decoder_states_inputs)
+    decoder_lstm = model.get_layer(name='dec_lstm') # dec_lstm
+    decoder_outputs, state_h, state_c = decoder_lstm(decoder_embedding, initial_state=decoder_states_inputs)
     decoder_states = [state_h, state_c]
-    decoder_dense = model.layers[5]  # should match Dense(target_vocab, activation='softmax')
+    # decoder_dense = model.layers[6]  # name=dec_outputs, should match Dense(target_vocab, activation='softmax')
+    decoder_dense = model.get_layer(name='dec_outputs') # should match Dense(target_vocab, activation='softmax')
+    # decoder_dense = Dense(target_vocab, activation='softmax', name='dec_outputs')
     decoder_outputs = decoder_dense(decoder_outputs)
     decoder_model = Model(
         [decoder_inputs] + decoder_states_inputs,
@@ -92,7 +97,7 @@ def infer_models(model, latent_dim=256):
 def decode_sequence(input_seq, model, tokenizer):
     """
     Decode (translate) the input sequence into natural language in the target language
-    :param input_seq: The one-hot encoded 3-d numpy array
+    :param input_seq: list(int): Sequence of integers representing words from the tokenizer
     :param model: Model
     :param tokenizer: Tokenizer
     :return: the target language sentence output
@@ -104,14 +109,11 @@ def decode_sequence(input_seq, model, tokenizer):
     # Encode the input as state vectors.
     states_value = encoder_model.predict(input_seq)
 
-    # the target vocab size (e.g. English)
-    target_vocab = decoder_model.input_shape[0][2]
-
     # Generate empty target sequence of length 1.
-    target_seq = np.zeros((1, 1, target_vocab))
+    # target_seq = np.zeros((1, 1, target_vocab))
     # Populate the first character of target sequence with the start character.
-    start_seq = tokenizer.word_index['\t'] # tokenizer.texts_to_sequences(['\t'])
-    target_seq[0, 0, start_seq] = 1.
+    start_seq = tokenizer.word_index['\t']
+    target_seq = [start_seq]
 
     # Sampling loop for a batch of sequences
     # (to simplify, here we assume a batch of size 1).
@@ -123,19 +125,18 @@ def decode_sequence(input_seq, model, tokenizer):
         # Sample a token
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_word = helpers.word_for_id(sampled_token_index, tokenizer)
-        decoded_sentence += sampled_word
 
         # Exit condition: either hit max length
         # or find stop character.
-        if (sampled_word == '\n' or
+        if (sampled_word == '\n' or sampled_word is None or
                 len(decoded_sentence) > max_decoder_seq_length):
             stop_condition = True
         else:
-            decoded_sentence += ' '
+            decoded_sentence += sampled_word + ' '
 
         # Update the target sequence (of length 1).
-        target_seq = np.zeros((1, 1, target_vocab))
-        target_seq[0, 0, sampled_token_index] = 1.
+        # target_seq.append(sampled_token_index)
+        target_seq[0] = sampled_token_index
 
         # Update states
         states_value = [h, c]

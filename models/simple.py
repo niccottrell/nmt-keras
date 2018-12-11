@@ -1,5 +1,5 @@
 """
-This module defines the various models that will be tested
+This module defines a simple model with fixed lengths.
 """
 from keras.layers import Dense
 from keras.layers import Embedding

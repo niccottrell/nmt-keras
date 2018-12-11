@@ -97,7 +97,7 @@ if __name__ == '__main__':
     # load dataset
     filename = lang2 + '.txt'
     doc = load_doc(filename)
-    # split into english-german pairs
+    # split into language pairs
     pairs = to_pairs(doc)
     # clean sentences
     clean_pairs = clean_pairs(pairs, ['en', 'sv'])

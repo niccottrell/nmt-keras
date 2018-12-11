@@ -4,6 +4,7 @@ This module helps us examine/debug the different tokenizers
 
 from helpers import *
 
+
 def summarize_tokenizers():
     # load full dataset
     dataset = load_clean_sentences('both')
@@ -22,7 +23,7 @@ def summarize_tokenizers():
         eng_length = max_length(eng_lines)
         print('English Vocabulary Size: %d' % eng_vocab_size)
         print('English Max Length: %d' % eng_length)
-        # prepare german tokenizer
+        # prepare other (source language) tokenizer
         dataset_lang2 = dataset[:, 1]
         other_tokenized = tokenizer_func(dataset_lang2, lang2)
         for i, source in enumerate(other_tokenized):
@@ -36,4 +37,6 @@ def summarize_tokenizers():
         print('Other Vocabulary Size: %d' % other_vocab_size)
         print('Other Max Length: %d' % other_length)
 
-summarize_tokenizers()
+
+if __name__ == '__main__':
+    summarize_tokenizers()

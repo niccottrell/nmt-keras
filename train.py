@@ -3,17 +3,21 @@ This module trains a model and stores it in a file
 """
 from keras.callbacks import ModelCheckpoint
 from keras.utils.vis_utils import plot_model
+from keras.models import load_model
 
 from helpers import *
 import numpy as np
+import tensorflow as tf
 
-epochs = 20
+epochs_default = 20
 
 latent_dim = 256  # Dimensionality of word-embedding (and so LSTM layer)
 
 batch_size = 64 # TODO: Is this batch size too big?
 
-def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
+print ("VERSION", tf.Session(config=tf.ConfigProto(log_device_placement=True)))
+
+def train_save(model_function, tokenizer_func, filename, optimizer='adam', epochs=epochs_default):
     """
     Trains a given model with tokenizer and checkpoints it to a file for later
     :param model_function: the function to define the model
@@ -30,6 +34,7 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     print("Prepare english tokenizer")
     dataset_lang1 = dataset[:, 0]
     eng_tokenized = tokenizer_func(dataset_lang1, 'en')
+    if model_function != simple.simple_model: eng_tokenized = mark_ends(eng_tokenized)
     eng_tokenizer = create_tokenizer(eng_tokenized)
     eng_vocab_size = len(eng_tokenizer.word_index) + 1
     eng_length = max_length(eng_tokenized)
@@ -46,17 +51,31 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
     print('Other Max Length: %d' % other_length)
 
     print("Prepare training data")
-    trainX = encode_sequences(other_tokenizer, other_length, tokenizer_func(train[:, 1], lang2))
-    trainY = encode_sequences(eng_tokenizer, eng_length, tokenizer_func(train[:, 0], 'en'))
-    trainY = encode_output(trainY, eng_vocab_size)
+    trainX = encode_sequences(other_tokenizer, tokenizer_func(train[:, 1], lang2), other_length)
+    train_tokenized = tokenizer_func(train[:, 0], 'en')
+    if model_function != simple.simple_model: train_tokenized = mark_ends(train_tokenized)
+    trainY = encode_sequences(eng_tokenizer, train_tokenized, eng_length)
+    if model_function == attention.dense_model:  trainY = encode_output(trainY, eng_vocab_size)
     print("Prepare validation data")
-    testX = encode_sequences(other_tokenizer, other_length, tokenizer_func(test[:, 1], lang2))
-    testY = encode_sequences(eng_tokenizer, eng_length, tokenizer_func(test[:, 0], 'en'))
-    testY = encode_output(testY, eng_vocab_size)
+    testX = encode_sequences(other_tokenizer, tokenizer_func(test[:, 1], lang2), other_length)
+    validation_tokenized = tokenizer_func(test[:, 0], 'en')
+    if model_function != simple.simple_model: validation_tokenized = mark_ends(validation_tokenized)
+    testY = encode_sequences(eng_tokenizer, validation_tokenized, eng_length)
+    if model_function == attention.dense_model: testY = encode_output(testY, eng_vocab_size)
 
-    print("Define and compile model")
-    model = model_function(other_vocab_size, eng_vocab_size, other_length, eng_length)
-    model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+    print("\n")
+    try:
+        # try and load checkpointed model to continue
+        model = load_model('checkpoints/' + filename + '.h5')
+        print("Loaded checkpointed model")
+    except:
+        print("Define and compile model")
+        model = model_function(other_vocab_size, eng_vocab_size, other_length, eng_length)
+        model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+
+    if epochs == 0:  # a 'hack' to prepare the models without actually doing any fitting
+        return
+
     # summarize defined model
     print(model.summary())
     plot_model(model, to_file=('checkpoints/' + filename + '.png'), show_shapes=True)
@@ -67,17 +86,23 @@ def train_save(model_function, tokenizer_func, filename, optimizer='adam'):
         X = trainX
         y = trainY
     else: # the dense/attention model
-        # Need to encode the
-        trainX = encode_output(trainX, other_vocab_size)
-        testX = encode_output(testX, other_vocab_size)
+        # Need to encode the source input
+        if model_function == attention.dense_model:
+            trainX = encode_output(trainX, other_vocab_size)
+            testX = encode_output(testX, other_vocab_size)
+        # see attention.py: [encoder_inputs, decoder_inputs]
         X = [trainX, trainY]
         testX = [testX, testY]
         # prepare decoder target offset by 1
-        y = offset_data(trainY)
-        testY = offset_data(testY)
+        if model_function == attention2.dense_model:
+            y = encode_output(offset_data(trainY), eng_vocab_size)
+            testY = encode_output(offset_data(testY), eng_vocab_size)
+        else:
+            y = offset_data(trainY)
+            testY = offset_data(testY)
     # where `X` is Training data and `y` are Target values
     # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
-    model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=2)
+    model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=1)
 
 
 def offset_data(trainY):
