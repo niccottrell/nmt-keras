@@ -6,6 +6,14 @@ This is a test for NMT using Keras
 
 ## Install Conda
 
+Download and install via https://www.anaconda.com/download/
+
+```sh
+conda create --name nmt-keras python=3.6
+source activate nmt-keras
+
+```
+
 ## Install hunspell and dictionaries
 
 ### On Mac
