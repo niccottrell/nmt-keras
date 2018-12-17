@@ -1,0 +1,6 @@
+version: '2'
+
+services:
+  keras-nmt:
+    build: .
+    image: nic/keras:v2

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 ##
 # Runs the entire workflow (assuming that all the initialization has worked correctly)

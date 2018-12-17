@@ -1,0 +1,9 @@
+name: CondaEnv
+channels:
+    - conda-forge
+dependencies:
+    - pip:
+        - tensorflow
+    - pandas=0.22.*
+    - hunspell
+    - msgpack-pythonconda install -c

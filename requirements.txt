@@ -9,3 +9,4 @@ pyphen
 unidecode
 regex
 pydot
+msgpack

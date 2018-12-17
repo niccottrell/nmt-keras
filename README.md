@@ -2,6 +2,40 @@
 
 This is a test for NMT using Keras
 
+# Via pure Docker
+
+```
+docker build -t kerasnmt .
+docker run --name my-nmt kerasnmt
+```
+To ssh in:
+```sh
+docker exec -it my-nmt bash 
+```
+
+To stop it:
+```sh
+docker stop $(docker ps -q --filter ancestor=kerasnmt)
+```
+or
+```
+docker stop my-nmt
+```
+
+
+
+# Via Docker Compose
+
+```sh
+docker-compose up --build
+```
+
+```
+docker run -it nic/keras:v2 bash
+```
+
+
+
 # Environment
 
 ## Install Conda

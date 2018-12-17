@@ -4,7 +4,9 @@ from unidecode import unidecode
 import sys
 import nltk
 
-nltk.download('punkt')
+import config
+
+nltk.download('punkt', download_dir=config.nltk_data)
 
 from helpers import *
 
