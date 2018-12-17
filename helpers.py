@@ -4,7 +4,6 @@ from pickle import dump
 from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
 from keras.utils import to_categorical
-from keras import optimizers
 
 from numpy import array
 
@@ -22,9 +21,8 @@ import nltk
 import string
 import pyphen
 
-from models import attention2, simple, attention
 
-nltk.download('averaged_perceptron_tagger')
+# nltk.download('averaged_perceptron_tagger', download_dir=config.nltk_data)
 
 lang2 = 'swe'
 
@@ -99,6 +97,7 @@ def pos_tag(line, lang='en'):
     """
     Append part-of-speech tags to each word, keeping the units as a list
     :type line: list(str)
+    :type lang: str
     :return list(str)
     """
     pattern = re.compile("[\d€{}]+$".format(re.escape(string.punctuation)))
@@ -131,19 +130,22 @@ def pos_tag_lines(lines, lang):
         tagged_lines.append(pos_tag(line, lang))
     return tagged_lines
 
+
 # keep HunposTaggers loaded
 ht_cache = {}
+
 
 def pos_tag_tokens(line, lang):
     """
     Do POS-tagging but return tuples for each input word
     :type line: list(str) An already tokenized line
+    :type lang: str The language (2-letter code)
     """
     iso3 = ('sve' if lang[:2] == 'sv' else 'eng')
     if iso3 in ht_cache:
         ht = ht_cache[iso3]
     else:
-        if (iso3 == 'eng'):
+        if iso3 == 'eng':
             model = 'en_wsj.model'
             enc = 'utf-8'
         else:  # Swedish
@@ -159,6 +161,7 @@ def pos_tag_tokens(line, lang):
 
 re_print = re.compile('[^%s]' % re.escape(string.printable))
 re_punct_digits = re.compile("[\d€{}]+$".format(re.escape(string.punctuation)))
+
 
 def replace_proper(line, lang):
     """
@@ -258,6 +261,11 @@ def prepare_lines(lines, lang='en', lc_first=None) -> list:
 
 
 def prepare_line(line, lang='en', lc_first=None):
+    """
+    :param line: str
+    :param lang: str
+    :param lc_first: bool
+    """
     # add spaces before punctuation
     line = regex_endpunct.sub(" \g<1>", line)
     # language-specific fixes
@@ -292,6 +300,11 @@ def is_noun(word, lang):
 
 
 def is_in_dict(word, lang):
+    """
+    :param str word: the word unit
+    :param str lang: language code
+    :return:
+    """
     path = './hunspell/'
     if lang == 'en':
         hobj = hunspell.HunSpell(path + 'en_US.dic', path + 'en_US.aff')
@@ -310,10 +323,10 @@ def hyphenate(word, lang):
     """
     Hyphenates a single word
     :param word:
-    :param lang:
+    :param str lang:
     :return:
     """
-    if (lang == 'sv'):
+    if lang == 'sv':
         dic = pyphen.Pyphen(lang='sv_SE')
     else:
         dic = pyphen.Pyphen(lang='en_US')
@@ -328,7 +341,7 @@ def hyphenate_lines(lines, lang):
     :param lang: the 2-letter language code
     :return: list(list(str))
     """
-    if (lang == 'sv' or lang == 'sve'):
+    if lang == 'sv' or lang == 'sve':
         dic = pyphen.Pyphen(lang='sv_SE')
     else:
         dic = pyphen.Pyphen(lang='en_US')
@@ -427,26 +440,3 @@ def mark_ends(lines_tokenized):
     for line in lines_tokenized:
         output.append(['\t'] + line + ['\n'])
     return output
-
-
-models = {
-   # 'simple': simple.simple_model,
-   # 'dense': attention.dense_model
-    'dense2': attention2.dense_model
-}
-
-tokenizers = {
-     'a': simple_lines,
-    # 'b': hyphenate_lines,
-    # 'c': word2phrase_lines,
-    # 'd': replace_proper_lines,
-    # 'e': pos_tag_lines
-}
-
-# key becomes part of the model name, the value is passed in the optimizer= parameter
-optimizers = {
-   # 'sgd': 'sgd',  # default parameters (reported to be more 'stable' than adam)
-   # 'rmsprop': 'sgd',  # default lr=0.001
-   # 'rmsprop2': optimizers.RMSprop(lr=0.01),  # same as previous but with 10x higher learning rate
-    'adam': 'adam'
-}
