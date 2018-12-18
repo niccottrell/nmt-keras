@@ -13,7 +13,7 @@ from models.base import BaseModel
 import numpy as np
 
 from helpers import *
-from train import epochs_default
+from config import epochs_default
 
 
 class Attention(BaseModel):
@@ -27,7 +27,7 @@ class Attention(BaseModel):
         BaseModel.__init__(self, "Attention ")
 
 
-    def dense_model(src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
+    def dense_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
         """
         To train:
         encoder_input_data is a 3D array of shape (num_pairs, max_english_sentence_length, num_english_characters) containing a one-hot vectorization of the English sentences.
@@ -231,3 +231,15 @@ class Attention(BaseModel):
         # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
         model.fit(X, y, epochs=epochs, batch_size=train.batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=1)
 
+
+    def translate(self, model, tokenizer, source):
+        """
+        :param model: Model
+        :param source: list(int)
+        :param tokenizer: Tokenizer
+        """
+        source = source.reshape((1, source.shape[0]))
+        vocab_size = model.input_shape[0][2]
+        # encode to one-hot ndarray (3-dimensions)
+        source_encoded = encode_output(source, vocab_size)
+        return self.decode_sequence(source_encoded, model, tokenizer)

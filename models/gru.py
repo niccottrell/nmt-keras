@@ -1,12 +1,8 @@
 """
 This module defines the various models that will be tested
 """
-from keras.layers import Dense
-from keras.layers import Embedding
-from keras.layers import Input, LSTM, GRU
-from keras.layers import RepeatVector
-from keras.layers import TimeDistributed
-from keras.models import Sequential, Model
+from keras.layers import Dense, Input, GRU
+from keras.models import Model
 
 from models.base import BaseModel
 

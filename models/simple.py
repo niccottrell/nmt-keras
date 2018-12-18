@@ -3,17 +3,13 @@ This module defines a simple model with fixed lengths.
 """
 from keras.callbacks import ModelCheckpoint
 from keras.engine.saving import load_model
-from keras.layers import Dense
-from keras.layers import Embedding
-from keras.layers import Input, LSTM, GRU
-from keras.layers import RepeatVector
-from keras.layers import TimeDistributed
+from keras.layers import Dense, Embedding , LSTM, RepeatVector, TimeDistributed
 from keras.models import Sequential, Model
 from keras.utils import plot_model
 
 from helpers import load_clean_sentences, create_tokenizer, max_length, lang2, encode_sequences
 from models.base import BaseModel
-from train import batch_size, epochs_default
+from config import batch_size, epochs_default
 
 
 class Simple(BaseModel):
@@ -39,6 +35,15 @@ class Simple(BaseModel):
         model.add(TimeDistributed(Dense(target_vocab, activation='softmax')))
         return model
 
+
+    def translate(self, model, tokenizer, source):
+        """
+        :param model: Model
+        :param tokenizer: string
+        :param source: list(int)
+        :return: string
+        """
+        return self.predict_sequence(model, tokenizer, source)
 
     def train_save(self, tokenizer_func, filename, optimizer='adam', epochs=epochs_default):
         """

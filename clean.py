@@ -1,6 +1,3 @@
-from nltk.tokenize import word_tokenize
-from unidecode import unidecode
-
 import sys
 import nltk
 

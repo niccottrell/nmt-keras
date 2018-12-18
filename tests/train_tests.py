@@ -1,6 +1,8 @@
 import unittest
-from train import offset_data
+
 import numpy as np
+
+from models import base
 
 
 class TrainTests(unittest.TestCase):
@@ -19,7 +21,7 @@ class TrainTests(unittest.TestCase):
         target[0, 0, 2] = 1  # second word, vector-dimension 2 has value
         target[0, 0, 5] = 1  # second word, vector-dimension 2 has value
         target[0, 1, 3] = 1  # third word, vector-dimension 3 has value
-        output = offset_data(input)
+        output = base.BaseModel.offset_data(input)
         np.testing.assert_array_equal(target, output)
 
 
@@ -62,6 +64,6 @@ class TrainTests(unittest.TestCase):
                 # and will not include the start character.
                 decoder_target_data[0, t - 1, target_token_index[char]] = 1.
 
-        output = offset_data(decoder_input_data)
+        output = base.BaseModel.offset_data(decoder_input_data)
 
         np.testing.assert_array_equal(decoder_target_data, output)

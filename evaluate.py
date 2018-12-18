@@ -1,40 +1,14 @@
-from numpy import argmax
-from keras.preprocessing.text import Tokenizer
+
 from keras.models import load_model
 from nltk.translate.bleu_score import corpus_bleu
 
+import train
 from helpers import *
-from train import train_save
-
-
-# generate target given source sequence
-def predict_sequence(model, tokenizer, source):
-    """
-    generate target given source sequence (for all predictions)
-    :type model: Model
-    :type tokenizer: Tokenizer
-    :type source: The input data
-    :return the most likely prediction
-    """
-    translations = list()
-    predictions = model.predict(source, verbose=0)
-    for preduction in predictions:
-        integers = [argmax(vector) for vector in preduction]
-        target = list()
-        for i in integers:
-            word = word_for_id(i, tokenizer)
-            if word is None:
-                break
-            target.append(word)
-        translations.append(' '.join(target))
-    print("Candidates=", translations)
-    return translations[0]
-
 
 def evaluate_model(model, tokenizer, sources, raw_dataset):
     """
     evaluate the skill of the model
-    :param model: Model the model with weights already trained
+    :param model: BaseModel the model with weights already trained
     :param tokenizer: Tokenizer run on the target language dataset (identical to when the model was trained)
     :param sources: list(list(int)): The sequence in the other language (encoded as integers, but not yet 1-hot encoded)
     :param raw_dataset: The validation dataset language pairs prior to tokenizer (i.e. actual strings)
@@ -42,20 +16,7 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
     actual, predicted = list(), list()
     for i, source in enumerate(sources):
         # translate encoded source text
-        if model.name == 'dense':
-            source = source.reshape((1, source.shape[0]))
-            vocab_size = model.input_shape[0][2]
-            # encode to one-hot ndarray (3-dimensions)
-            source_encoded = encode_output(source, vocab_size)
-            translation = attention.decode_sequence(source_encoded, model, tokenizer)
-        elif model.name == 'dense2':
-            # source = source.reshape((1, source.shape[0]))
-            # vocab_size = model.input_shape[0][2]
-            # encode to one-hot ndarray (3-dimensions)
-            source_encoded = source# encode_output(source, vocab_size)
-            translation = attention2.decode_sequence(source_encoded, model, tokenizer)
-        else:
-            translation = predict_sequence(model, tokenizer, source)
+        translation = model.translate(source, tokenizer)
         raw_target, raw_src = raw_dataset[i]
         if i < 20:
             print('src=[%s], target=[%s], predicted=[%s]' % (raw_src, raw_target, translation))
@@ -103,14 +64,14 @@ def eval_model(filename, tokenizer_func):
 
 def evaluate_all():
     summary = {}
-    for model_name, model_func in models.items():
-        for token_id, tokenizer in tokenizers.items():
-            for opt_id, optimizer in optimizers.items():
-                # prepare the attention decoder model (with a hack)
-                train_save(model_func, tokenizer, 'blah', epochs=0)
-                # save each one
-                filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
+    for model_name, model_obj in train.models.items():
+        for token_id, tokenizer in train.tokenizers.items():
+            for opt_id, optimizer in train.optimizer_opts.items():
                 try:
+                    # prepare the attention decoder model (with a hack)
+                    model_obj.train_save(tokenizer, model_name, optimizer)
+                    # save each one
+                    filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
                     test_bleu4 = eval_model(filename, tokenizer)
                     summary[filename] = test_bleu4
                 except:

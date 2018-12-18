@@ -1,7 +1,9 @@
 import abc
 import numpy as np
+from keras.preprocessing.text import Tokenizer
 
 from config import epochs_default
+from helpers import word_for_id
 
 
 class BaseModel(object):
@@ -9,11 +11,21 @@ class BaseModel(object):
     def __init__(self, name):
         self.name = name
 
-    def getName(self):
+    def get_name(self):
         return self.name
 
     def __str__(self):
         return "Name: %s" % (self.name)
+
+    @abc.abstractmethod
+    def translate(self, model, tokenizer, source):
+        """
+        :param model: Model
+        :param tokenizer: string
+        :param source: list(int)
+        :return: string
+        """
+        return
 
     @abc.abstractmethod
     def train_save(self, tokenizer_func, filename, optimizer='adam', epochs=epochs_default):
@@ -29,6 +41,28 @@ class BaseModel(object):
     @abc.abstractmethod
     def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, n_units=100):
         return
+
+    def predict_sequence(self, model, tokenizer, source):
+        """
+        generate target given source sequence (for all predictions)
+        :type model: Model
+        :type tokenizer: Tokenizer
+        :type source: The input data
+        :return the most likely prediction
+        """
+        translations = list()
+        predictions = model.predict(source, verbose=0)
+        for preduction in predictions:
+            integers = [np.argmax(vector) for vector in preduction]
+            target = list()
+            for i in integers:
+                word = word_for_id(i, tokenizer)
+                if word is None:
+                    break
+                target.append(word)
+            translations.append(' '.join(target))
+        print("Candidates=", translations)
+        return translations[0]
 
     @staticmethod
     def offset_data(trainY):

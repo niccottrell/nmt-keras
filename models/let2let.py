@@ -111,7 +111,7 @@ class Let2Let(BaseModel):
 
         self.model = self.define_model()
 
-        filename = 'checkpoints/' + 's2s.h5'
+        filename = 'checkpoints/' + filename + '.h5'
 
         if (mode == 'continue' or mode == 'readonly') and os.path.isfile(filename):
             # Load the previous model (layers and weights but NO STATE)

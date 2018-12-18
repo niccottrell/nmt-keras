@@ -9,6 +9,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.utils.vis_utils import plot_model
 from keras.models import load_model
 
+from config import epochs_default, batch_size
 from models.base import BaseModel
 
 from helpers import *
@@ -29,7 +30,7 @@ class Attention2(BaseModel):
     max_decoder_seq_length = 40
 
 
-    def dense_model(src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
+    def dense_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
         """
         To train:
         encoder_input_data is a 3D array of shape (num_pairs, max_english_sentence_length, num_english_characters) containing a one-hot vectorization of the English sentences.
@@ -235,3 +236,15 @@ class Attention2(BaseModel):
         # where `X` is Training data and `y` are Target values
         # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
         model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=1)
+
+
+    def translate(self, source, model, tokenizer):
+        """
+        :param source: list(int)
+        :param tokenizer: Tokenizer
+        """
+        # source = source.reshape((1, source.shape[0]))
+        # vocab_size = model.input_shape[0][2]
+        # encode to one-hot ndarray (3-dimensions)
+        # encode_output(source, vocab_size)
+        return self.decode_sequence(source, model, tokenizer)
