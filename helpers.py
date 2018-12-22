@@ -13,7 +13,7 @@ from nltk.tag.hunpos import HunposTagger
 from os.path import expanduser
 import traceback
 
-import hunspell
+# import hunspell
 import unicodedata
 import re  # standard regex system
 import regex  # better regex system
@@ -299,20 +299,31 @@ def is_noun(word, lang):
     return True if pos[0] == 'N' else False
 
 
+def built_dict(path):
+    with open(path) as f:
+        return dict([line.split() for line in f])
+
+
+dict_en = built_dict('dicts/en.txt')
+dict_sv = built_dict('dicts/sv.txt')
+
 def is_in_dict(word, lang):
     """
     :param str word: the word unit
     :param str lang: language code
     :return:
     """
-    path = './hunspell/'
+    # path = './hunspell/'
     if lang == 'en':
-        hobj = hunspell.HunSpell(path + 'en_US.dic', path + 'en_US.aff')
+      #  hobj = hunspell.HunSpell(path + 'en_US.dic', path + 'en_US.aff')
+      return word.lower() in dict_en
     elif lang == 'sv':
-        hobj = hunspell.HunSpell(path + 'sv_SE.dic', path + 'sv_SE.aff')
+      #  hobj = hunspell.HunSpell(path + 'sv_SE.dic', path + 'sv_SE.aff')
+      return word.lower() in dict_sv
     else:
-        raise Exception("Do not support language: " + lang)
-    return hobj.spell(word)
+      raise Exception("Do not support language: " + lang)
+    # return hobj.spell(word)
+
 
 
 def is_punct(str):

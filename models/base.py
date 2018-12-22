@@ -17,15 +17,14 @@ class BaseModel(object):
     def __str__(self):
         return "Name: %s" % (self.name)
 
-    @abc.abstractmethod
     def translate(self, model, tokenizer, source):
         """
         :param model: Model
         :param tokenizer: string
         :param source: list(int)
-        :return: string
+        :return: string the most likely translation as a string
         """
-        return
+        return self.predict_sequence(model, tokenizer, source)
 
     @abc.abstractmethod
     def train_save(self, tokenizer_func, filename, optimizer='adam', epochs=epochs_default):

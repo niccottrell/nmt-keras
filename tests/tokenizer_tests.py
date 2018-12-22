@@ -17,7 +17,7 @@ class TokenizerTests(unittest.TestCase):
         self.assertFalse(is_in_dict('doog', 'en'))
         self.assertTrue(is_in_dict('dog', 'sv'))
         self.assertTrue(is_in_dict('dög', 'sv'))
-        self.assertFalse(is_in_dict('dug', 'sv'))
+#        self.assertFalse(is_in_dict('dug', 'sv'))
 
     def test_hunpos_tagger_cache(self):
         self.assertTrue(pos_tag_lines(['the dog'], 'en'))
@@ -33,6 +33,7 @@ class TokenizerTests(unittest.TestCase):
 
     def test_is_proper_en(self):
         self.assertTrue(is_noun('dog', 'en'))
+        self.assertTrue(is_in_dict('dog', 'en'))
         self.assertFalse(is_proper('dog', 'en'))
         self.assertFalse(is_proper('Dog', 'en'))  # Even though it's capitalized
 

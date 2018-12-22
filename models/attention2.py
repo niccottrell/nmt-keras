@@ -74,8 +74,10 @@ class Attention2(BaseModel):
     def infer_models(self, model, latent_dim=256):
         """
         Decode (translate) the input sequence into natural language in the target language
-        :param input_seq: list(int): Sequence of integers representing words from the tokenizer
+        :param input_seq:  Sequence of integers representing words from the tokenizer
+        :type input_seq: list(int)
         :param model: Model
+        :type model: Model
         """
         # Next: inference mode (sampling).
         # Here's the drill:
@@ -238,7 +240,7 @@ class Attention2(BaseModel):
         model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=1)
 
 
-    def translate(self, source, model, tokenizer):
+    def translate(self, model, tokenizer, source):
         """
         :param source: list(int)
         :param tokenizer: Tokenizer

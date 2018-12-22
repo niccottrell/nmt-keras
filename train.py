@@ -1,6 +1,7 @@
 """
 This module trains a model and stores it in a file
 """
+import os
 
 import tensorflow as tf
 from helpers import *
@@ -50,5 +51,7 @@ def train_all():
 
 
 if __name__ == '__main__':
+    # Avoid memory errors on Mac
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True' # or `pip install nomkl`
     # Start the training
     train_all()

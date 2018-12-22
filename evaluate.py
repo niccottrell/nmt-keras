@@ -1,14 +1,15 @@
-
 from keras.models import load_model
 from nltk.translate.bleu_score import corpus_bleu
 
 import train
 from helpers import *
 
-def evaluate_model(model, tokenizer, sources, raw_dataset):
+
+def evaluate_model(model_obj, model, tokenizer, sources, raw_dataset):
     """
     evaluate the skill of the model
-    :param model: BaseModel the model with weights already trained
+    :param model_obj: models.base.BaseModel the model container
+    :param model: keras.models.Model the model with weights already trained
     :param tokenizer: Tokenizer run on the target language dataset (identical to when the model was trained)
     :param sources: list(list(int)): The sequence in the other language (encoded as integers, but not yet 1-hot encoded)
     :param raw_dataset: The validation dataset language pairs prior to tokenizer (i.e. actual strings)
@@ -16,7 +17,7 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
     actual, predicted = list(), list()
     for i, source in enumerate(sources):
         # translate encoded source text
-        translation = model.translate(source, tokenizer)
+        translation = model_obj.translate(model, tokenizer, source)
         raw_target, raw_src = raw_dataset[i]
         if i < 20:
             print('src=[%s], target=[%s], predicted=[%s]' % (raw_src, raw_target, translation))
@@ -31,8 +32,16 @@ def evaluate_model(model, tokenizer, sources, raw_dataset):
     return bleu4
 
 
-def eval_model(filename, tokenizer_func):
-    print('### About to evaluate model %s with tokenizer %s' % (filename, tokenizer_func.__name__))
+def eval_model(model_obj, filename, tokenizer_func):
+    """
+    :param model_obj:
+    :type model_obj: models.base.BaseModel
+    :param filename:
+    :type filename: str
+    :param tokenizer_func: function
+    :return:
+    """
+    print('### About to evaluate mod el %s with tokenizer %s' % (filename, tokenizer_func.__name__))
     # load datasets
     dataset = load_clean_sentences('both')
     train = load_clean_sentences('train')
@@ -55,10 +64,10 @@ def eval_model(filename, tokenizer_func):
     print(model.summary())
     # test on some training sequences
     print('Evaluating training set: train=%s, trainX=%s' % (str(train), str(trainX)))
-    evaluate_model(model, eng_tokenizer, trainX, train)
+    evaluate_model(model_obj, model, eng_tokenizer, trainX, train)
     # test on some test sequences
     print('Evaluating testing set: test=%s, testX=%s' % (str(test), str(testX)))
-    test_bleu4 = evaluate_model(model, eng_tokenizer, testX, test)
+    test_bleu4 = evaluate_model(model_obj, model, eng_tokenizer, testX, test)
     return test_bleu4
 
 
@@ -69,10 +78,10 @@ def evaluate_all():
             for opt_id, optimizer in train.optimizer_opts.items():
                 try:
                     # prepare the attention decoder model (with a hack)
-                    model_obj.train_save(tokenizer, model_name, optimizer)
+                    model_obj.train_save(tokenizer, model_name, optimizer, mode='readonly')
                     # save each one
                     filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
-                    test_bleu4 = eval_model(filename, tokenizer)
+                    test_bleu4 = eval_model(model_obj, filename, tokenizer)
                     summary[filename] = test_bleu4
                 except:
                     traceback.print_exc()

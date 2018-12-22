@@ -35,16 +35,6 @@ class Simple(BaseModel):
         model.add(TimeDistributed(Dense(target_vocab, activation='softmax')))
         return model
 
-
-    def translate(self, model, tokenizer, source):
-        """
-        :param model: Model
-        :param tokenizer: string
-        :param source: list(int)
-        :return: string
-        """
-        return self.predict_sequence(model, tokenizer, source)
-
     def train_save(self, tokenizer_func, filename, optimizer='adam', epochs=epochs_default):
         """
         Trains a given model with tokenizer and checkpoints it to a file for later

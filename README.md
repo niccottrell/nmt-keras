@@ -48,6 +48,11 @@ source activate nmt-keras
 
 ```
 
+```sh
+conda config --add channels conda-forge 
+conda install <package-name>
+```
+
 ## Install hunspell and dictionaries
 
 ### On Mac

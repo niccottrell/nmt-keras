@@ -12,6 +12,10 @@ curl -o hunspell/sv_SE.aff https://cgit.freedesktop.org/libreoffice/dictionaries
 curl -o hunspell/en_US.dic https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
 curl -o hunspell/en_US.aff https://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.aff
 
+mkdir -p dicts
+curl -o dicts/sv.txt https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2016/sv/sv_50k.txt
+curl -o dicts/en.txt https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2016/en/en_50k.txt
+
 wget http://stp.lingfil.uu.se/~bea/resources/hunpos/suc-suctags.model.gz
 gunzip -f suc-suctags.model.gz
 
