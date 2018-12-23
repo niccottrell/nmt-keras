@@ -35,7 +35,7 @@ def sample_all():
                 model.name = model_name
                 # test on some training sequences
                 print('Evaluating manual set: ' + model_name)
-                evaluate_model(model_obj, model, eng_tokenizer, trainX, grammar_dataset)
+                evaluate_model(model_obj, trainX, grammar_dataset)
 
 
 if __name__ == '__main__':

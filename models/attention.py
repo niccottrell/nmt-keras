@@ -23,9 +23,8 @@ class Attention(BaseModel):
 
     print(__file__)
 
-    def __init__(self):
-        BaseModel.__init__(self, "Attention ")
-
+    def __init__(self, name, tokenizer_func, optimizer):
+        BaseModel.__init__(self, name, tokenizer_func, optimizer)
 
     def dense_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
         """
@@ -100,7 +99,7 @@ class Attention(BaseModel):
         return (encoder_model, decoder_model)
 
 
-    def decode_sequence(self, input_seq, model, tokenizer):
+    def decode_sequence(self, input_seq):
         """
         Decode (translate) the input sequence into natural language in the target language
         :param input_seq: The one-hot encoded 3-d numpy array
@@ -110,7 +109,7 @@ class Attention(BaseModel):
 
         """
 
-        encoder_model, decoder_model = self.infer_models(model)
+        encoder_model, decoder_model = self.infer_models(self.model)
 
         # Encode the input as state vectors.
         states_value = encoder_model.predict(input_seq)
@@ -121,7 +120,7 @@ class Attention(BaseModel):
         # Generate empty target sequence of length 1.
         target_seq = np.zeros((1, 1, target_vocab))
         # Populate the first character of target sequence with the start character.
-        start_seq = tokenizer.word_index['\t'] # tokenizer.texts_to_sequences(['\t'])
+        start_seq = self.tokenizer.word_index['\t'] # tokenizer.texts_to_sequences(['\t'])
         target_seq[0, 0, start_seq] = 1.
 
         # Sampling loop for a batch of sequences
@@ -133,7 +132,7 @@ class Attention(BaseModel):
 
             # Sample a token
             sampled_token_index = np.argmax(output_tokens[0, -1, :])
-            sampled_word = word_for_id(sampled_token_index, tokenizer)
+            sampled_word = word_for_id(sampled_token_index, self.tokenizer)
             decoded_sentence += sampled_word
 
             # Exit condition: either hit max length
@@ -154,14 +153,14 @@ class Attention(BaseModel):
         return decoded_sentence
 
 
-    def train_save(self, tokenizer_func, filename, optimizer='adam', epochs=epochs_default):
+    def train_save(self, epochs=epochs_default):
         """
         Trains a given model with tokenizer and checkpoints it to a file for later
         :param tokenizer_func: the function to tokenize input strings
         :param filename: the model name (no extension)
         """
         print("\n###\nAbout to train model %s with tokenizer %s and optimizer %s\n###\n\n"
-              % (self.__name__, tokenizer_func.__name__, optimizer))
+              % (self.__name__, self.tokenizer_func.__name__, self.optimizer))
         # load datasets
         dataset = load_clean_sentences('both')
         train = load_clean_sentences('train')
@@ -169,7 +168,7 @@ class Attention(BaseModel):
 
         print("Prepare english tokenizer")
         dataset_lang1 = dataset[:, 0]
-        eng_tokenized = tokenizer_func(dataset_lang1, 'en')
+        eng_tokenized = self.tokenizer_func(dataset_lang1, 'en')
         eng_tokenized = mark_ends(eng_tokenized)
         eng_tokenizer = create_tokenizer(eng_tokenized)
         eng_vocab_size = len(eng_tokenizer.word_index) + 1
@@ -179,7 +178,7 @@ class Attention(BaseModel):
 
         print("Prepare other language tokenizer")
         dataset_lang2 = dataset[:, 1]
-        other_tokenized = tokenizer_func(dataset_lang2, lang2)
+        other_tokenized = self.tokenizer_func(dataset_lang2, lang2)
         other_tokenizer = create_tokenizer(other_tokenized)
         other_vocab_size = len(other_tokenizer.word_index) + 1
         other_length = max_length(other_tokenized)
@@ -187,14 +186,14 @@ class Attention(BaseModel):
         print('Other Max Length: %d' % other_length)
 
         print("Prepare training data")
-        trainX = encode_sequences(other_tokenizer, tokenizer_func(train[:, 1], lang2), other_length)
-        train_tokenized = tokenizer_func(train[:, 0], 'en')
+        trainX = encode_sequences(other_tokenizer, self.tokenizer_func(train[:, 1], lang2), other_length)
+        train_tokenized = self.tokenizer_func(train[:, 0], 'en')
         train_tokenized = mark_ends(train_tokenized)
         trainY = encode_sequences(eng_tokenizer, train_tokenized, eng_length)
         trainY = encode_output(trainY, eng_vocab_size)
         print("Prepare validation data")
-        testX = encode_sequences(other_tokenizer, tokenizer_func(test[:, 1], lang2), other_length)
-        validation_tokenized = tokenizer_func(test[:, 0], 'en')
+        testX = encode_sequences(other_tokenizer, self.tokenizer_func(test[:, 1], lang2), other_length)
+        validation_tokenized = self.tokenizer_func(test[:, 0], 'en')
         validation_tokenized = mark_ends(validation_tokenized)
         testY = encode_sequences(eng_tokenizer, validation_tokenized, eng_length)
         testY = encode_output(testY, eng_vocab_size)
@@ -202,21 +201,21 @@ class Attention(BaseModel):
         print("\n")
         try:
             # try and load checkpointed model to continue
-            model = load_model('checkpoints/' + filename + '.h5')
+            model = load_model('checkpoints/' + self.name + '.h5')
             print("Loaded checkpointed model")
         except:
             print("Define and compile model")
             model = self.define_model(other_vocab_size, eng_vocab_size, other_length, eng_length, eng_vocab_size)
-            model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+            model.compile(optimizer=self.optimizer, loss='categorical_crossentropy')
 
         if epochs == 0:  # a 'hack' to prepare the models without actually doing any fitting
             return
 
         # summarize defined model
         print(model.summary())
-        plot_model(model, to_file=('checkpoints/' + filename + '.png'), show_shapes=True)
+        plot_model(model, to_file=('checkpoints/' + self.name + '.png'), show_shapes=True)
         print("Fit model")
-        checkpoint = ModelCheckpoint('checkpoints/' + filename + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+        checkpoint = ModelCheckpoint('checkpoints/' + self.name + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
         # the model is saved via a callback checkpoint
         # Need to encode the source input
         trainX = encode_output(trainX, other_vocab_size)
@@ -232,14 +231,14 @@ class Attention(BaseModel):
         model.fit(X, y, epochs=epochs, batch_size=train.batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=1)
 
 
-    def translate(self, model, tokenizer, source):
+    def translate(self, source):
         """
         :param model: Model
         :param source: list(int)
         :param tokenizer: Tokenizer
         """
         source = source.reshape((1, source.shape[0]))
-        vocab_size = model.input_shape[0][2]
+        vocab_size = self.model.input_shape[0][2]
         # encode to one-hot ndarray (3-dimensions)
         source_encoded = encode_output(source, vocab_size)
-        return self.decode_sequence(source_encoded, model, tokenizer)
+        return self.decode_sequence(source_encoded)

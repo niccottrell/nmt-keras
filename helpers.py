@@ -65,13 +65,16 @@ def create_tokenizer(lines) -> Tokenizer:
     """
     create a tokenizer
     :param lines: list(list(str)) already tokenized lines
-    :return: Tokenizer
+    :rtype: Tokenizer
     """
     return create_tokenizer_simple(lines)
 
 
 # Tokenize lines on spaces (not preserved) - don't lowercase, but filter out most punctuation
 def create_tokenizer_simple(lines) -> Tokenizer:
+    """
+    :rtype: Tokenizer
+    """
     tokenizer = Tokenizer(
         filters='"#$%&()*+-/:;<=>@[\\]^_`{|}~',  # Don't filter \t and \n since we use them as sequence markers
         lower=False)  # Since in German (at least) case has significance; In English, it tends to indicate Proper nouns

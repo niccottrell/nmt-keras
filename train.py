@@ -12,10 +12,10 @@ from models import let2let
 print("VERSION", tf.Session(config=tf.ConfigProto(log_device_placement=True)))
 
 models = {
-    # 'simple': simple.Simple(),
-    # 'dense': attention.Attention()
-    'let2let': let2let.Let2Let(),
-#    'dense2': attention2.Attention2()
+    # 'simple': simple.Simple,
+    # 'dense': attention.Attention
+    'let2let': let2let.Let2Let,
+#    'dense2': attention2.Attention2
 }
 
 tokenizers = {
@@ -37,13 +37,14 @@ optimizer_opts = {
 
 def train_all():
     """Train the models and tokenizer permutations"""
-    for model_name, model_func in models.items():
+    for model_name, model_class in models.items():
         for token_id, tokenizer in tokenizers.items():
             for opt_id, optimizer in optimizer_opts.items():
                 # save each one
                 filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
                 try:
-                    model_func.train_save(tokenizer, filename, optimizer)
+                    model_obj = model_class(filename, tokenizer, optimizer)
+                    model_obj.train_save(mode='restart')
                 except:
                     print("Error training model: " + filename)
                     traceback.print_exc()
@@ -52,6 +53,6 @@ def train_all():
 
 if __name__ == '__main__':
     # Avoid memory errors on Mac
-    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True' # or `pip install nomkl`
+    # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True' # or `pip install nomkl`
     # Start the training
     train_all()

@@ -8,8 +8,9 @@ from models.base import BaseModel
 
 class GRUModel(BaseModel):
 
-    def __init__(self, name):
-        BaseModel.__init__(self, name)
+    def __init__(self, name, tokenizer_func, optimizer):
+        BaseModel.__init__(self, name, tokenizer_func, optimizer)
+
 
     # TODO: model with GRU rather than LSTM
     def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, n_units):

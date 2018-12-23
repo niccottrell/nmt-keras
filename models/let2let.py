@@ -19,28 +19,31 @@ class Let2Let(BaseModel):
     CH_START = '\t'
     CH_END = '\n'
 
+    CHARS_BASIC = "abcdefghijklmnopqrstuvwxyzäåö" + "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÅÖ" + "0123456789" + "!@#$%^&*()[]{}?<>,.;:"
+
     batch_size = 64  # Batch size for training.
     epochs = 10  # Number of epochs to train for.
     latent_dim = 256  # Latent dimensionality of the encoding space.
 
     # mode = 'restart' # Start from default weights
-    mode = 'continue' # Load previous weights and continue fitting
+    mode = 'continue'  # Load previous weights and continue fitting
     # mode = 'readonly' # Use the pre-trained model but don't do any more fitting
 
     input_token_index = dict()
     target_token_index = dict()
 
-    model = None
-
-
-    def __init__(self):
-        BaseModel.__init__(self, "Letter-by-letter")
+    def __init__(self, name, tokenizer, optimizer):
+        BaseModel.__init__(self, name, tokenizer, optimizer)
 
         # Vectorize the data.
         self.input_texts = []
         self.target_texts = []
         self.input_characters = set()
         self.target_characters = set()
+
+        for ch in self.CHARS_BASIC:
+            self.input_characters.add(ch)
+            self.target_characters.add(ch)
 
         lines = load_clean_sentences('both')
 
@@ -105,13 +108,11 @@ class Let2Let(BaseModel):
         self.reverse_target_char_index = dict(
             (i, char) for char, i in self.target_token_index.items())
 
-
-
-    def train_save(self, tokenizer_func, filename, optimizer='adam', epochs=10, mode='continue'):
+    def train_save(self, epochs=10, mode='continue'):
 
         self.model = self.define_model()
 
-        filename = 'checkpoints/' + filename + '.h5'
+        filename = 'checkpoints/' + self.name + '.h5'
 
         if (mode == 'continue' or mode == 'readonly') and os.path.isfile(filename):
             # Load the previous model (layers and weights but NO STATE)
@@ -122,10 +123,10 @@ class Let2Let(BaseModel):
             checkpoint = ModelCheckpoint(filename, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
             # Run training
             self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
-                      batch_size=self.batch_size,
-                      epochs=epochs,
-                      validation_split=0.2,
-                      callbacks=[checkpoint])
+                           batch_size=self.batch_size,
+                           epochs=epochs,
+                           validation_split=0.2,
+                           callbacks=[checkpoint])
             # Save model
             self.model.save(filename)
 
@@ -172,7 +173,7 @@ class Let2Let(BaseModel):
         encoder_states = [state_h_enc, state_c_enc]
         encoder_model = Model(encoder_inputs, encoder_states)
 
-        decoder_inputs = model.input[1]   # input_2
+        decoder_inputs = model.input[1]  # input_2
         decoder_state_input_h = Input(shape=(self.latent_dim,), name='input_3')
         decoder_state_input_c = Input(shape=(self.latent_dim,), name='input_4')
         decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
@@ -187,7 +188,21 @@ class Let2Let(BaseModel):
             [decoder_outputs] + decoder_states)
         return (encoder_model, decoder_model)
 
+    def translate(self, input_text):
 
+        encoder_input_data = np.zeros(
+            (1, self.max_encoder_seq_length, self.num_encoder_tokens),
+            dtype='float32')
+
+        for t, char in enumerate(input_text):
+            try:
+                idx = self.input_token_index[char]
+                encoder_input_data[0, t, idx] = 1.
+            except KeyError:
+                print("No match for char=" + str(char))
+                pass
+
+        return self.decode_sequence(encoder_input_data[0:1])
 
     def decode_sequence(self, input_seq):
         """

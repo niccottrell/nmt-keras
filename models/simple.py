@@ -2,9 +2,8 @@
 This module defines a simple model with fixed lengths.
 """
 from keras.callbacks import ModelCheckpoint
-from keras.engine.saving import load_model
 from keras.layers import Dense, Embedding , LSTM, RepeatVector, TimeDistributed
-from keras.models import Sequential, Model
+from keras.models import Sequential, Model, load_model
 from keras.utils import plot_model
 
 from helpers import load_clean_sentences, create_tokenizer, max_length, lang2, encode_sequences
@@ -14,8 +13,8 @@ from config import batch_size, epochs_default
 
 class Simple(BaseModel):
 
-    def __init__(self, name):
-        BaseModel.__init__(self, name)
+    def __init__(self, name, tokenizer_func, optimizer):
+        BaseModel.__init__(self, name, tokenizer_func, optimizer)
 
 
     def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, n_units=100):
@@ -35,7 +34,7 @@ class Simple(BaseModel):
         model.add(TimeDistributed(Dense(target_vocab, activation='softmax')))
         return model
 
-    def train_save(self, tokenizer_func, filename, optimizer='adam', epochs=epochs_default):
+    def train_save(self, epochs=epochs_default):
         """
         Trains a given model with tokenizer and checkpoints it to a file for later
         :param function  tokenizer_func: the function to tokenize input strings
@@ -43,7 +42,7 @@ class Simple(BaseModel):
         :param str optimizer: the optimizer to use
         """
         print("\n###\nAbout to train model %s with tokenizer %s and optimizer %s\n###\n\n"
-              % (__name__, tokenizer_func.__name__, optimizer))
+              % (__name__, self.tokenizer_func.__name__, self.optimizer))
         # load datasets
         dataset = load_clean_sentences('both')
         train = load_clean_sentences('train')
@@ -51,7 +50,7 @@ class Simple(BaseModel):
 
         print("Prepare english tokenizer")
         dataset_lang1 = dataset[:, 0]
-        eng_tokenized = tokenizer_func(dataset_lang1, 'en')
+        eng_tokenized = self.tokenizer_func(dataset_lang1, 'en')
         eng_tokenizer = create_tokenizer(eng_tokenized)
         eng_vocab_size = len(eng_tokenizer.word_index) + 1
         eng_length = max_length(eng_tokenized)
@@ -60,7 +59,7 @@ class Simple(BaseModel):
 
         print("Prepare other language tokenizer")
         dataset_lang2 = dataset[:, 1]
-        other_tokenized = tokenizer_func(dataset_lang2, lang2)
+        other_tokenized = self.tokenizer_func(dataset_lang2, lang2)
         other_tokenizer = create_tokenizer(other_tokenized)
         other_vocab_size = len(other_tokenizer.word_index) + 1
         other_length = max_length(other_tokenized)
@@ -68,32 +67,32 @@ class Simple(BaseModel):
         print('Other Max Length: %d' % other_length)
 
         print("Prepare training data")
-        trainX = encode_sequences(other_tokenizer, tokenizer_func(train[:, 1], lang2), other_length)
-        train_tokenized = tokenizer_func(train[:, 0], 'en')
+        trainX = encode_sequences(other_tokenizer, self.tokenizer_func(train[:, 1], lang2), other_length)
+        train_tokenized = self.tokenizer_func(train[:, 0], 'en')
         trainY = encode_sequences(eng_tokenizer, train_tokenized, eng_length)
         print("Prepare validation data")
-        testX = encode_sequences(other_tokenizer, tokenizer_func(test[:, 1], lang2), other_length)
-        validation_tokenized = tokenizer_func(test[:, 0], 'en')
+        testX = encode_sequences(other_tokenizer, self.tokenizer_func(test[:, 1], lang2), other_length)
+        validation_tokenized = self.tokenizer_func(test[:, 0], 'en')
         testY = encode_sequences(eng_tokenizer, validation_tokenized, eng_length)
 
         print("\n")
         try:
             # try and load checkpointed model to continue
-            model = load_model('checkpoints/' + filename + '.h5')
+            model = load_model('checkpoints/' + self.name + '.h5')
             print("Loaded checkpointed model")
         except:
             print("Define and compile model")
             model = self.define_model(other_vocab_size, eng_vocab_size, other_length, eng_length)
-            model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+            model.compile(optimizer=self.optimizer, loss='categorical_crossentropy')
 
         if epochs == 0:  # a 'hack' to prepare the models without actually doing any fitting
             return
 
         # summarize defined model
         print(model.summary())
-        plot_model(model, to_file=('checkpoints/' + filename + '.png'), show_shapes=True)
+        plot_model(model, to_file=('checkpoints/' + self.name + '.png'), show_shapes=True)
         print("Fit model")
-        checkpoint = ModelCheckpoint('checkpoints/' + filename + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+        checkpoint = ModelCheckpoint('checkpoints/' + self.name + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
         # the model is saved via a callback checkpoint
         X = trainX
         y = trainY
