@@ -134,6 +134,21 @@ def pos_tag_lines(lines, lang):
     return tagged_lines
 
 
+def letters(lines, lang):
+    """
+    Tokenize lines by breaking into individual letters, keeping all spaces and punctuation
+    :param lines: list(str)
+    :return: list(list(str)
+    """
+    tagged_lines = []
+    for line in lines:
+        chars = []
+        for t, char in enumerate(line):
+            chars.append(char)
+        tagged_lines.append(chars)
+    return tagged_lines
+
+
 # keep HunposTaggers loaded
 ht_cache = {}
 
@@ -160,7 +175,6 @@ def pos_tag_tokens(line, lang):
         ht_cache[iso3] = ht
     tuples = ht.tag(line)
     return tuples
-
 
 re_print = re.compile('[^%s]' % re.escape(string.printable))
 re_punct_digits = re.compile("[\d€{}]+$".format(re.escape(string.punctuation)))

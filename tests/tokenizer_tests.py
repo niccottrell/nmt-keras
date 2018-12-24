@@ -141,6 +141,11 @@ class TokenizerTests(unittest.TestCase):
         self.assertEqual([['The', 'cat', 'in', 'the', 'hat', '.']],
                          word2phrase_lines(['The cat in the hat .'], lang='en'))
 
+    def test_letters1(self):
+        self.assertEqual([['H', 'a','t']], letters(['Hat'], lang='en'))
+        self.assertEqual([['T','h','e', ' ','c','a','t', ' ','i','n', ' ', 't','h','e',' ', 'h','a','t', '.']],
+                         letters(['The cat in the hat.'], lang='en'))
+
     def assertEqualSet(self, list1, list2):
         self.assertEqual(set(list1), set(list2))
 

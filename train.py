@@ -23,6 +23,7 @@ tokenizers = {
     # 'c': word2phrase_lines,
     # 'd': replace_proper_lines,
     # 'e': pos_tag_lines
+    'l': letters,
 }
 
 # key becomes part of the model name, the value is passed in the optimizer= parameter
