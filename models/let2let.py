@@ -1,5 +1,6 @@
 """
-A letter-by-letter model for translation with Keras
+A letter-by-letter model for translation with Keras.
+Ignores input tokenizer and just does letter-by-letter
 Based on https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
 """
 
@@ -7,6 +8,7 @@ from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 from keras.callbacks import ModelCheckpoint
 
+from config import epochs_default
 from models.base import BaseModel
 
 import numpy as np
@@ -108,17 +110,17 @@ class Let2Let(BaseModel):
         self.reverse_target_char_index = dict(
             (i, char) for char, i in self.target_token_index.items())
 
-    def train_save(self, epochs=10, mode='continue'):
+    def train_save(self, epochs=epochs_default):
 
         self.model = self.define_model()
 
         filename = 'checkpoints/' + self.name + '.h5'
 
-        if (mode == 'continue' or mode == 'readonly') and os.path.isfile(filename):
+        if  os.path.isfile(filename):
             # Load the previous model (layers and weights but NO STATE)
             self.model.load_weights(filename)
 
-        if mode == 'continue' or mode == 'restart':
+        if epochs > 0:
             # Prepare checkpoints
             checkpoint = ModelCheckpoint(filename, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
             # Run training
@@ -130,7 +132,7 @@ class Let2Let(BaseModel):
             # Save model
             self.model.save(filename)
 
-    def define_model(self, src_vocab=None, target_vocab=None, src_timesteps=None, target_timesteps=None, n_units=100):
+    def define_model(self):
         # Define an input sequence and process it.
         encoder_inputs = Input(shape=(None, self.num_encoder_tokens))
         encoder_lstm = LSTM(self.latent_dim, return_state=True)

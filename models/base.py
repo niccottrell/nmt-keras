@@ -8,7 +8,8 @@ from helpers import word_for_id, encode_sequences, lang2, create_tokenizer, max_
 
 class BaseModel(object):
 
-    model = None
+    model = None # The keras.Model
+    tokenizer = None  # The keras.preprocessing.text.Tokenizer
     optimizer = 'adam'
     tokenizer_func = simple_lines
 
@@ -43,12 +44,8 @@ class BaseModel(object):
     def train_save(self, epochs=epochs_default):
         """
         Trains a given model with tokenizer and checkpoints it to a file for later
-        :param  epochs: the number of epochs to repeat during training
+        :param  epochs: the number of epochs to repeat during training (0 means load saved model but don't fit any more)
         """
-        return
-
-    @abc.abstractmethod
-    def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, n_units=100):
         return
 
     def predict_sequence(self, source):

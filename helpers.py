@@ -409,11 +409,11 @@ def word_for_id(integer, tokenizer):
 
 def encode_sequences(tokenizer, lines, pad_length=None):
     """
-    encode words to integer and pad sequences (if desired)
+    encode words to integers and pad sequences (if desired)
     :param tokenizer: Tokenizer to map from word to integer and back
     :param pad_length: int Pad the sequence up to this length
     :param lines: list(list(str): Already tokenized lines (normally words, but also phrases or sub-words)
-    :return: Numpy array
+    :return: Numpy array with values as word indexes
     """
     # check for None
     for line in lines:
@@ -426,9 +426,9 @@ def encode_sequences(tokenizer, lines, pad_length=None):
     return X
 
 
-def encode_output(sequences, vocab_size):
+def encode_1hot(sequences, vocab_size):
     """
-    one hot encode target sequence
+    one hot encode integer sequence
     Converts a class vector (integers) to binary class matrix.
     :param sequences: Numpy array of integers (first level is a sentence, second is each word index) shape=(num_sentences, max_length)
     :param vocab_size: int: Create one class per vocab in this target language?

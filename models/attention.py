@@ -26,7 +26,7 @@ class Attention(BaseModel):
     def __init__(self, name, tokenizer_func, optimizer):
         BaseModel.__init__(self, name, tokenizer_func, optimizer)
 
-    def dense_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
+    def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
         """
         To train:
         encoder_input_data is a 3D array of shape (num_pairs, max_english_sentence_length, num_english_characters) containing a one-hot vectorization of the English sentences.
@@ -103,10 +103,7 @@ class Attention(BaseModel):
         """
         Decode (translate) the input sequence into natural language in the target language
         :param input_seq: The one-hot encoded 3-d numpy array
-        :param model: Model
-        :param tokenizer: Tokenizer
         :return: the target language sentence output
-
         """
 
         encoder_model, decoder_model = self.infer_models(self.model)
@@ -156,11 +153,9 @@ class Attention(BaseModel):
     def train_save(self, epochs=epochs_default):
         """
         Trains a given model with tokenizer and checkpoints it to a file for later
-        :param tokenizer_func: the function to tokenize input strings
-        :param filename: the model name (no extension)
         """
         print("\n###\nAbout to train model %s with tokenizer %s and optimizer %s\n###\n\n"
-              % (self.__name__, self.tokenizer_func.__name__, self.optimizer))
+              % (__name__, self.tokenizer_func.__name__, self.optimizer))
         # load datasets
         dataset = load_clean_sentences('both')
         train = load_clean_sentences('train')
@@ -190,13 +185,13 @@ class Attention(BaseModel):
         train_tokenized = self.tokenizer_func(train[:, 0], 'en')
         train_tokenized = mark_ends(train_tokenized)
         trainY = encode_sequences(eng_tokenizer, train_tokenized, eng_length)
-        trainY = encode_output(trainY, eng_vocab_size)
+        trainY = encode_1hot(trainY, eng_vocab_size)
         print("Prepare validation data")
         testX = encode_sequences(other_tokenizer, self.tokenizer_func(test[:, 1], lang2), other_length)
         validation_tokenized = self.tokenizer_func(test[:, 0], 'en')
         validation_tokenized = mark_ends(validation_tokenized)
         testY = encode_sequences(eng_tokenizer, validation_tokenized, eng_length)
-        testY = encode_output(testY, eng_vocab_size)
+        testY = encode_1hot(testY, eng_vocab_size)
 
         print("\n")
         try:
@@ -218,8 +213,8 @@ class Attention(BaseModel):
         checkpoint = ModelCheckpoint('checkpoints/' + self.name + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
         # the model is saved via a callback checkpoint
         # Need to encode the source input
-        trainX = encode_output(trainX, other_vocab_size)
-        testX = encode_output(testX, other_vocab_size)
+        trainX = encode_1hot(trainX, other_vocab_size)
+        testX = encode_1hot(testX, other_vocab_size)
         # see attention.py: [encoder_inputs, decoder_inputs]
         X = [trainX, trainY]
         testX = [testX, testY]
@@ -233,12 +228,11 @@ class Attention(BaseModel):
 
     def translate(self, source):
         """
-        :param model: Model
-        :param source: list(int)
-        :param tokenizer: Tokenizer
+        :param source: the input natural language
+        :type source: string
         """
         source = source.reshape((1, source.shape[0]))
         vocab_size = self.model.input_shape[0][2]
         # encode to one-hot ndarray (3-dimensions)
-        source_encoded = encode_output(source, vocab_size)
+        source_encoded = encode_1hot(source, vocab_size)
         return self.decode_sequence(source_encoded)

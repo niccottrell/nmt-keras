@@ -12,9 +12,9 @@ def evaluate_model(model_obj, raw_dataset):
     :param raw_dataset: The validation dataset language pairs prior to tokenizer (i.e. actual strings)
     """
     actual, predicted = list(), list()
-    for i, tuple in enumerate(raw_dataset):
+    for i, pair in enumerate(raw_dataset):
         # translate encoded source text
-        raw_target, raw_src = tuple[0], tuple[1]
+        raw_target, raw_src = pair[0], pair[1]
         translation = model_obj.translate(raw_src)
         if i < 20:
             print('src=[%s], target=[%s], predicted=[%s]' % (raw_src, raw_target, translation))
@@ -29,34 +29,32 @@ def evaluate_model(model_obj, raw_dataset):
     return bleu4
 
 
-def eval_model(model_obj, filename, tokenizer_func):
+def eval_model(model_obj):
     """
     :param model_obj:
     :type model_obj: models.base.BaseModel
-    :param filename:
-    :type filename: str
-    :param tokenizer_func: function
-    :return:
+    :return: BLEU-4 score for this model
+    :rtype: float
     """
-    print('### About to evaluate model %s with tokenizer %s' % (filename, tokenizer_func.__name__))
+    print('### About to evaluate model %s with tokenizer %s' % (model_obj.name, model_obj.tokenizer_func.__name__))
     # load datasets
     dataset = load_clean_sentences('both')
     train = load_clean_sentences('train')
     test = load_clean_sentences('test')
     # prepare english tokenizer
-    eng_tokenized = tokenizer_func(dataset[:, 0], 'en')
-    if filename.startswith('dense'): eng_tokenized = mark_ends(eng_tokenized)
-    eng_tokenizer = create_tokenizer(eng_tokenized)
+    # eng_tokenized = tokenizer_func(dataset[:, 0], 'en')
+    # if filename.startswith('dense'): eng_tokenized = mark_ends(eng_tokenized)
+    # eng_tokenizer = create_tokenizer(eng_tokenized)
     # prepare other tokenizer
     model_obj.update(dataset)
     # trainX = encode_sequences(other_tokenizer, tokenizer_func(train[:, 1], lang2), pad_length)
     # testX = encode_sequences(other_tokenizer, tokenizer_func(test[:, 1], lang2), pad_length)
     # load model
-    model = load_model('checkpoints/' + filename + '.h5')
+    model = load_model('checkpoints/' + model_obj.name + '.h5')
     print(model.summary())
     # test on some training sequences
-    print('Evaluating training set: train=%s' % (str(train)))
-    evaluate_model(model_obj, train)
+    # print('Evaluating training set: train=%s' % (str(train)))
+    # evaluate_model(model_obj, train)
     # test on some test sequences
     print('Evaluating testing set: test=%s' % (str(test)))
     test_bleu4 = evaluate_model(model_obj, test)
@@ -73,9 +71,9 @@ def evaluate_all():
                     filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
                     # prepare the attention decoder model (with a hack)
                     model_obj = model_class(filename, tokenizer, optimizer)
-                    model_obj.train_save(mode='readonly')
+                    model_obj.train_save(epochs=0)
                     # save each one
-                    test_bleu4 = eval_model(model_obj, filename, tokenizer)
+                    test_bleu4 = eval_model(model_obj)
                     summary[filename] = test_bleu4
                 except:
                     traceback.print_exc()

@@ -6,15 +6,14 @@ import os
 import tensorflow as tf
 from helpers import *
 
-from models import let2let
-
+from models import let2let, simple
 
 print("VERSION", tf.Session(config=tf.ConfigProto(log_device_placement=True)))
 
 models = {
-    # 'simple': simple.Simple,
+     'simple': simple.Simple,
     # 'dense': attention.Attention
-    'let2let': let2let.Let2Let,
+    # 'let2let': let2let.Let2Let,
 #    'dense2': attention2.Attention2
 }
 
@@ -44,7 +43,7 @@ def train_all():
                 filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
                 try:
                     model_obj = model_class(filename, tokenizer, optimizer)
-                    model_obj.train_save(mode='restart')
+                    model_obj.train_save()
                 except:
                     print("Error training model: " + filename)
                     traceback.print_exc()

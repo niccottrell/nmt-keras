@@ -21,15 +21,15 @@ import helpers
 
 class Attention2(BaseModel):
 
-    def __init__(self, name, tokenizer_func, optimizer):
-        BaseModel.__init__(self, name, tokenizer_func, optimizer)
-
-    print(helpers.__file__)
-
     # Assume a problem is the decoded length exceeds this
     max_decoder_seq_length = 40
 
-    def dense_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
+    print(__file__)
+
+    def __init__(self, name, tokenizer_func, optimizer):
+        BaseModel.__init__(self, name, tokenizer_func, optimizer)
+
+    def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
         """
         To train:
         encoder_input_data is a 3D array of shape (num_pairs, max_english_sentence_length, num_english_characters) containing a one-hot vectorization of the English sentences.
@@ -73,8 +73,6 @@ class Attention2(BaseModel):
     def infer_models(self, model, latent_dim=256):
         """
         Decode (translate) the input sequence into natural language in the target language
-        :param input_seq:  Sequence of integers representing words from the tokenizer
-        :type input_seq: list(int)
         :param model: Model
         :type model: Model
         """
@@ -120,7 +118,6 @@ class Attention2(BaseModel):
         Decode (translate) the input sequence into natural language in the target language
         :param input_seq: list(int): Sequence of integers representing words from the tokenizer
         :return: the target language sentence output
-
         """
 
         encoder_model, decoder_model = self.infer_models(self.model)
@@ -166,8 +163,6 @@ class Attention2(BaseModel):
     def train_save(self, epochs=epochs_default):
         """
         Trains a given model with tokenizer and checkpoints it to a file for later
-        :param tokenizer_func: the function to tokenize input strings
-        :param filename: the model name (no extension)
         """
         print("\n###\nAbout to train model %s with tokenizer %s and optimizer %s\n###\n\n"
               % (__name__, self.tokenizer_func.__name__, self.optimizer))
@@ -229,8 +224,8 @@ class Attention2(BaseModel):
         X = [trainX, trainY]
         testX = [testX, testY]
         # prepare decoder target offset by 1
-        y = encode_output(self.offset_data(trainY), eng_vocab_size)
-        testY = encode_output(self.offset_data(testY), eng_vocab_size)
+        y = encode_1hot(self.offset_data(trainY), eng_vocab_size)
+        testY = encode_1hot(self.offset_data(testY), eng_vocab_size)
         # where `X` is Training data and `y` are Target values
         # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
         model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=1)
