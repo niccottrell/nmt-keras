@@ -11,6 +11,7 @@ def evaluate_model(model_obj, raw_dataset):
     :param model_obj: models.base.BaseModel the model container
     :param raw_dataset: The validation dataset language pairs prior to tokenizer (i.e. actual strings)
     """
+    print('About to evaluate test set of size %d' % len(raw_dataset))
     actual, predicted = list(), list()
     for i, pair in enumerate(raw_dataset):
         # translate encoded source text
@@ -18,6 +19,10 @@ def evaluate_model(model_obj, raw_dataset):
         translation = model_obj.translate(raw_src)
         if i < 20:
             print('src=[%s], target=[%s], predicted=[%s]' % (raw_src, raw_target, translation))
+        elif i == 80:
+            print('.\n')
+        else:
+            print('.', end='')
         actual.append(raw_target.split())
         predicted.append(translation.split())
     # calculate BLEU score (at the corpus level)
