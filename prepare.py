@@ -7,7 +7,7 @@ raw_dataset = load_clean_sentences()
 
 # reduce dataset size
 n_sentences = raw_dataset.shape[0]
-n_test = 2000
+n_test = 200 # higher values will make evaluation slow
 idx_cutoff = n_sentences - n_test
 
 dataset = raw_dataset[:n_sentences, :]
