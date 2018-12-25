@@ -1,6 +1,7 @@
 import unittest
+
+import tokenizers
 from thirdparty.word2phrase import train_model
-from helpers import word2phrase_lines
 
 
 class Word2PhraseTests(unittest.TestCase):
@@ -20,7 +21,8 @@ class Word2PhraseTests(unittest.TestCase):
         Test through the helper which will train on the dataset
         """
         lines = ['Take a few days off.']
-        out = word2phrase_lines(lines, 'en')
+        word2phrase = tokenizers.Word2Phrase()
+        out = word2phrase.tokenize(lines, 'en')
         for row in out:
             print(row)
             self.assertIn('a_few', row)

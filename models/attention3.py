@@ -1,7 +1,5 @@
 """
-A letter-by-letter model for translation with Keras.
-Ignores input tokenizer and just does letter-by-letter
-Based on https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
+Fork of let2let.py
 """
 
 from keras.models import Model
@@ -16,20 +14,15 @@ from helpers import *
 import os.path
 
 
-class Let2Let(BaseModel):
-
+class Attention3(BaseModel):
+    # We use "tab" as the "start sequence" character
+    # for the targets, and "\n" as "end sequence" character.
     CH_START = '\t'
     CH_END = '\n'
-
-    CHARS_BASIC = "abcdefghijklmnopqrstuvwxyzäåö" + "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÅÖ" + "0123456789" + "!@#$%^&*()[]{}?<>,.;:"
 
     batch_size = 64  # Batch size for training.
     epochs = 10  # Number of epochs to train for.
     latent_dim = 256  # Latent dimensionality of the encoding space.
-
-    # mode = 'restart' # Start from default weights
-    mode = 'continue'  # Load previous weights and continue fitting
-    # mode = 'readonly' # Use the pre-trained model but don't do any more fitting
 
     input_token_index = dict()
     target_token_index = dict()
@@ -37,78 +30,63 @@ class Let2Let(BaseModel):
     def __init__(self, name, tokenizer, optimizer):
         BaseModel.__init__(self, name, tokenizer, optimizer)
 
-        # Vectorize the data.
-        self.input_texts = []
-        self.target_texts = []
-        self.input_characters = set()
-        self.target_characters = set()
+        # Collection all tokens across all input lines
+        self.other_tokens = set() # input
+        self.eng_tokens = {self.CH_START, self.CH_END}  # target
 
-        for ch in self.CHARS_BASIC:
-            self.input_characters.add(ch)
-            self.target_characters.add(ch)
+        for idx, line in enumerate(self.eng_texts):
+            self.eng_texts[idx] = self.CH_START + self.eng_texts[idx] + self.CH_END
+            self.eng_tokenized[idx] = [self.CH_START] + self.eng_tokenized[idx] + [self.CH_END]
+            for token in self.other_tokenized[idx]:
+                self.other_tokens.add(token)
+            for token in self.eng_tokenized[idx]:
+                self.eng_tokens.add(token)
 
-        lines = load_clean_sentences('both')
+        self.other_tokens = sorted(list(self.other_tokens))
+        self.eng_tokens = sorted(list(self.eng_tokens))
+        self.num_encoder_tokens = len(self.other_tokens)
+        self.num_decoder_tokens = len(self.eng_tokens)
+        self.max_encoder_seq_length = max([len(txt) for txt in self.other_tokenized])
+        self.max_decoder_seq_length = max([len(txt) for txt in self.eng_tokenized])
 
-        for line in lines:
-            input_text = line[1]  # Swedish
-            target_text = line[0]  # English
-            # We use "tab" as the "start sequence" character
-            # for the targets, and "\n" as "end sequence" character.
-            target_text = self.CH_START + target_text + self.CH_END
-            self.input_texts.append(input_text)
-            self.target_texts.append(target_text)
-            for char in input_text:
-                if char not in self.input_characters:
-                    self.input_characters.add(char)
-            for char in target_text:
-                if char not in self.target_characters:
-                    self.target_characters.add(char)
-
-        self.input_characters = sorted(list(self.input_characters))
-        self.target_characters = sorted(list(self.target_characters))
-        self.num_encoder_tokens = len(self.input_characters)
-        self.num_decoder_tokens = len(self.target_characters)
-        self.max_encoder_seq_length = max([len(txt) for txt in self.input_texts])
-        self.max_decoder_seq_length = max([len(txt) for txt in self.target_texts])
-
-        print('Number of samples:', len(self.input_texts))
+        print('Number of samples:', self.num_samples)
         print('Number of unique input tokens:', self.num_encoder_tokens)
         print('Number of unique output tokens:', self.num_decoder_tokens)
         print('Max sequence length for inputs:', self.max_encoder_seq_length)
         print('Max sequence length for outputs:', self.max_decoder_seq_length)
 
         self.input_token_index = dict(
-            [(char, i) for i, char in enumerate(self.input_characters)])
+            [(token, i) for i, token in enumerate(self.other_tokens)])
         self.target_token_index = dict(
-            [(char, i) for i, char in enumerate(self.target_characters)])
+            [(token, i) for i, token in enumerate(self.eng_tokens)])
 
         self.encoder_input_data = np.zeros(
-            (len(self.input_texts), self.max_encoder_seq_length, self.num_encoder_tokens),
+            (self.num_samples, self.max_encoder_seq_length, self.num_encoder_tokens),
             dtype='float32')
         self.decoder_input_data = np.zeros(
-            (len(self.input_texts), self.max_decoder_seq_length, self.num_decoder_tokens),
+            (self.num_samples, self.max_decoder_seq_length, self.num_decoder_tokens),
             dtype='float32')
         self.decoder_target_data = np.zeros(
-            (len(self.input_texts), self.max_decoder_seq_length, self.num_decoder_tokens),
+            (self.num_samples, self.max_decoder_seq_length, self.num_decoder_tokens),
             dtype='float32')
 
-        for i, (input_text, target_text) in enumerate(zip(self.input_texts, self.target_texts)):
-            for t, char in enumerate(input_text):
-                self.encoder_input_data[i, t, self.input_token_index[char]] = 1.
-            for t, char in enumerate(target_text):
+        for i, (input_text, target_text) in enumerate(zip(self.other_tokenized, self.eng_tokenized)):
+            for t, token in enumerate(input_text):
+                self.encoder_input_data[i, t, self.input_token_index[token]] = 1.
+            for t, token in enumerate(target_text):
                 # decoder_target_data is ahead of decoder_input_data by one timestep
-                self.decoder_input_data[i, t, self.target_token_index[char]] = 1.
+                self.decoder_input_data[i, t, self.target_token_index[token]] = 1.
                 if t > 0:
                     # decoder_target_data will be ahead by one timestep
                     # and will not include the start character.
-                    self.decoder_target_data[i, t - 1, self.target_token_index[char]] = 1.
+                    self.decoder_target_data[i, t - 1, self.target_token_index[token]] = 1.
 
         # Reverse-lookup token index to decode sequences back to
         # something readable.
-        self.reverse_input_char_index = dict(
-            (i, char) for char, i in self.input_token_index.items())
-        self.reverse_target_char_index = dict(
-            (i, char) for char, i in self.target_token_index.items())
+        self.reverse_input_token_index = dict(
+            (i, token) for token, i in self.input_token_index.items())
+        self.reverse_target_token_index = dict(
+            (i, token) for token, i in self.target_token_index.items())
 
     def train_save(self, epochs=epochs_default):
 
@@ -116,7 +94,7 @@ class Let2Let(BaseModel):
 
         filename = 'checkpoints/' + self.name + '.h5'
 
-        if  os.path.isfile(filename):
+        if os.path.isfile(filename):
             # Load the previous model (layers and weights but NO STATE)
             self.model.load_weights(filename)
 
@@ -196,12 +174,13 @@ class Let2Let(BaseModel):
             (1, self.max_encoder_seq_length, self.num_encoder_tokens),
             dtype='float32')
 
-        for t, char in enumerate(input_text):
+        tokens = self.tokenizer.tokenize([input_text], lang2)
+        for t, token in enumerate(tokens[0]):
             try:
-                idx = self.input_token_index[char]
+                idx = self.input_token_index[token]
                 encoder_input_data[0, t, idx] = 1.
             except KeyError:
-                print("No match for char=" + str(char))
+                print("No match for char=" + str(token))
                 pass
 
         return self.decode_sequence(encoder_input_data[0:1])
@@ -225,20 +204,20 @@ class Let2Let(BaseModel):
         # Sampling loop for a batch of sequences
         # (to simplify, here we assume a batch of size 1).
         stop_condition = False
-        decoded_sentence = ''
+        decoded_tokens = []
         while not stop_condition:
             model_input = [target_seq] + states_value
             output_tokens, h, c = decoder_model.predict(model_input)
 
             # Sample a token
             sampled_token_index = np.argmax(output_tokens[0, -1, :])
-            sampled_char = self.reverse_target_char_index[sampled_token_index]
-            decoded_sentence += sampled_char
+            sampled_token = self.reverse_target_token_index[sampled_token_index]
+            decoded_tokens.append(sampled_token)
 
             # Exit condition: either hit max length
             # or find stop character.
-            if (sampled_char == self.CH_END or
-                    len(decoded_sentence) > self.max_decoder_seq_length):
+            if (sampled_token == self.CH_END or
+                    len(decoded_tokens) > self.max_decoder_seq_length):
                 stop_condition = True
 
             # Update the target sequence (of length 1).
@@ -248,7 +227,7 @@ class Let2Let(BaseModel):
             # Update states
             states_value = [h, c]
 
-        return decoded_sentence
+        return self.tokenizer.join(decoded_tokens, 'en')
 
     def quick_test(self):
         """
@@ -260,5 +239,5 @@ class Let2Let(BaseModel):
             input_seq = self.encoder_input_data[seq_index: seq_index + 1]
             decoded_sentence = self.decode_sequence(input_seq)
             print('-')
-            print('Input sentence:', self.input_texts[seq_index])
+            print('Input sentence:', self.other_texts[seq_index])
             print('Decoded sentence:', decoded_sentence)

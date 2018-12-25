@@ -36,17 +36,17 @@ def eval_model(model_obj):
     :return: BLEU-4 score for this model
     :rtype: float
     """
-    print('### About to evaluate model %s with tokenizer %s' % (model_obj.name, model_obj.tokenizer_func.__name__))
+    print('### About to evaluate model %s with tokenizer %s' % (model_obj.name, model_obj.tokenizer.__class__.__name__))
     # load datasets
-    dataset = load_clean_sentences('both')
-    train = load_clean_sentences('train')
+    # dataset = load_clean_sentences('both')
+    # train = load_clean_sentences('train')
     test = load_clean_sentences('test')
     # prepare english tokenizer
     # eng_tokenized = tokenizer_func(dataset[:, 0], 'en')
     # if filename.startswith('dense'): eng_tokenized = mark_ends(eng_tokenized)
     # eng_tokenizer = create_tokenizer(eng_tokenized)
     # prepare other tokenizer
-    model_obj.update(dataset)
+    # model_obj.update(dataset)
     # trainX = encode_sequences(other_tokenizer, tokenizer_func(train[:, 1], lang2), pad_length)
     # testX = encode_sequences(other_tokenizer, tokenizer_func(test[:, 1], lang2), pad_length)
     # load model

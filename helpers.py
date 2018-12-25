@@ -8,7 +8,6 @@ from keras.utils import to_categorical
 from numpy import array
 
 from nltk.stem import WordNetLemmatizer
-from nltk.tag.hunpos import HunposTagger
 
 from os.path import expanduser
 import traceback
@@ -20,7 +19,6 @@ import regex  # better regex system
 import nltk
 import string
 import pyphen
-
 
 # nltk.download('averaged_perceptron_tagger', download_dir=config.nltk_data)
 
@@ -82,186 +80,8 @@ def create_tokenizer_simple(lines) -> Tokenizer:
     return tokenizer
 
 
-def simple_lines(lines, lang):
-    """
-    Tokenize lines by whitespace but discard whitespace
-    :param lines: list(str)
-    :return: list(list(str)
-    """
-    from nltk.tokenize import WordPunctTokenizer
-    wpt = WordPunctTokenizer()  # See http://text-processing.com/demo/tokenize/ for examples
-    tokenized_lines = []
-    for line in lines:
-        tokenized_lines.append(wpt.tokenize(line))
-    return tokenized_lines
-
-
-def pos_tag(line, lang='en'):
-    """
-    Append part-of-speech tags to each word, keeping the units as a list
-    :type line: list(str)
-    :type lang: str
-    :return list(str)
-    """
-    pattern = re.compile("[\d€{}]+$".format(re.escape(string.punctuation)))
-    try:
-        tuples = pos_tag_tokens(line, lang)
-        result = []
-        for tuple in tuples:
-            if pattern.match(tuple[0]):  # It's just punctuation/digits/symbols
-                result.append(tuple[0])
-            else:
-                pos = tuple[1].decode('utf-8')
-                result.append(
-                    tuple[0] + "." + pos[
-                                     :2])  # Only take the first 2 letters of the POS, e.g. 'NN_UTR_SIN_DEF_NOM' -> 'NN'
-        return result
-    except:
-        print('Error tagging line `%s` in %s' % (line, lang))
-        traceback.print_exc()
-
-
-def pos_tag_lines(lines, lang):
-    """Post tag lines in bulk
-    :param lines: list(str)
-    :param lang: The 2-letter language code
-    :return: list(list(str))
-    """
-    tokenized_lines = simple_lines(lines, lang)
-    tagged_lines = []
-    for line in tokenized_lines:
-        tagged_lines.append(pos_tag(line, lang))
-    return tagged_lines
-
-
-def letters(lines, lang):
-    """
-    Tokenize lines by breaking into individual letters, keeping all spaces and punctuation
-    :param lines: list(str)
-    :return: list(list(str)
-    """
-    tagged_lines = []
-    for line in lines:
-        chars = []
-        for t, char in enumerate(line):
-            chars.append(char)
-        tagged_lines.append(chars)
-    return tagged_lines
-
-
-# keep HunposTaggers loaded
-ht_cache = {}
-
-
-def pos_tag_tokens(line, lang):
-    """
-    Do POS-tagging but return tuples for each input word
-    :type line: list(str) An already tokenized line
-    :type lang: str The language (2-letter code)
-    """
-    iso3 = ('sve' if lang[:2] == 'sv' else 'eng')
-    if iso3 in ht_cache:
-        ht = ht_cache[iso3]
-    else:
-        if iso3 == 'eng':
-            model = 'en_wsj.model'
-            enc = 'utf-8'
-        else:  # Swedish
-            model = 'suc-suctags.model'
-            enc = 'ISO-8859-1'
-        # build the tagger
-        ht = HunposTagger(model, path_to_bin='./hunpos-tag', encoding=enc)
-        # cache it
-        ht_cache[iso3] = ht
-    tuples = ht.tag(line)
-    return tuples
 
 re_print = re.compile('[^%s]' % re.escape(string.printable))
-re_punct_digits = re.compile("[\d€{}]+$".format(re.escape(string.punctuation)))
-
-
-def replace_proper(line, lang):
-    """
-    Append part-of-speech tags to each word, keeping the units as a list
-    :type line: list(str)
-    :type lang: str 2-letter language code
-    :return list(str)
-    """
-    inside_proper = False
-    proper_idx = 1
-    try:
-        tuples = pos_tag_tokens(line, lang)
-        result = []
-        for tuple in tuples:
-            if re_punct_digits.match(tuple[0]):  # It's just punctuation/digits/symbols
-                result.append(tuple[0])
-            else:
-                pos = tuple[1].decode('utf-8')
-                if pos == 'NNP' or pos == 'PM_NOM':  # Proper noun
-                    if not inside_proper:  # Don't write NP twice
-                        result.append('NP' + str(proper_idx))
-                        inside_proper = True
-                        proper_idx += 1
-                else:
-                    result.append(tuple[0])
-                    inside_proper = False
-        return result
-    except:
-        print('Error tagging line `%s` in %s' % (line, lang))
-        traceback.print_exc()
-
-
-def replace_proper_lines(lines, lang):
-    """Post tag lines in bulk
-    :param lines: list(str)
-    :param lang: The 2-letter language code
-    :return: list(list(str))
-    """
-    tokenized_lines = simple_lines(lines, lang)
-    tagged_lines = []
-    for line in tokenized_lines:
-        tagged_lines.append(replace_proper(line, lang))
-    return tagged_lines
-
-
-def word2phrase_lines(lines, lang):
-    """
-    Convert all line inputs to tokenized chunked phrases
-    :param lines: list(str) The lines to process this time
-    :param lang: str The language code (but ignored for now)
-    :return: list(list(str))
-    """
-    # Pre-split the lines
-    tokenized_lines = simple_lines(lines, lang)
-
-    # Import the required functions
-    from thirdparty.word2phrase import learn_vocab_from_train_iter, filter_vocab, apply
-
-    # settings
-    min_count = 3
-    threshold = 25
-
-    # TODO: we should cache this and only 'train' once per session per language
-    dataset_both = load_clean_sentences('both')
-    # prepare english tokenizer
-    lang_idx = 0 if lang == 'en' else 1
-    dataset_thislang = dataset_both[:, lang_idx]
-    dataset_tokenized = simple_lines(dataset_thislang, lang)
-
-    # vocab_iter, train_iter = tee(tokenized_lines)
-    vocab, train_words = learn_vocab_from_train_iter(dataset_tokenized)
-    print("word2phrase.train_model: raw vocab=%d, dataset_thislang=%d" % (len(vocab), train_words))
-    vocab = filter_vocab(vocab, min_count)
-    print("word2phrase.train_model: filtered vocab=%d" % len(vocab))
-
-    # Now apply it to these lines
-    lines = apply(tokenized_lines, vocab, train_words, '_', min_count, threshold)
-
-    result = []
-    for row in lines:
-        result.append(row)  # train_model
-    return result
-
 
 regex_endpunct = re.compile(r"([.?,!])")
 
@@ -308,12 +128,6 @@ def is_proper(word, lang):
 
 def is_capitalized(word):
     return True if word[0] == word[0].upper() else False
-
-
-def is_noun(word, lang):
-    tuples = pos_tag_tokens([word], lang)
-    pos = tuples[0][1].decode('utf-8')
-    return True if pos[0] == 'N' else False
 
 
 def built_dict(path):

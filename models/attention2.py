@@ -26,8 +26,8 @@ class Attention2(BaseModel):
 
     print(__file__)
 
-    def __init__(self, name, tokenizer_func, optimizer):
-        BaseModel.__init__(self, name, tokenizer_func, optimizer)
+    def __init__(self, name, tokenizer, optimizer):
+        BaseModel.__init__(self, name, tokenizer, optimizer)
 
     def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
         """

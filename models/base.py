@@ -1,28 +1,55 @@
 import abc
+
 import numpy as np
-from keras.preprocessing.text import Tokenizer
 
 from config import epochs_default
-from helpers import word_for_id, encode_sequences, lang2, create_tokenizer, max_length, simple_lines
+from helpers import word_for_id, lang2, create_tokenizer, max_length, load_clean_sentences
 
+import tokenizers
 
 class BaseModel(object):
 
     model = None # The keras.Model
-    tokenizer = None  # The keras.preprocessing.text.Tokenizer
+    other_tokenizer = None  # The keras.preprocessing.text.Tokenizer for mapping Swedish tokens to integers
+    eng_tokenizer = None  # The keras.preprocessing.text.Tokenizer for mapping English tokens to integers
     optimizer = 'adam'
-    tokenizer_func = simple_lines
+    tokenizer = None
 
-    def __init__(self, name, tokenizer_func, optimizer):
+    def __init__(self, name, tokenizer, optimizer):
         """
         :param name: the model name (no extension), e.g. "let2let_a_adam_201812"
-        :param tokenizer_func: the function to tokenize input strings
+        :param tokenizer: the function to tokenize input strings
+        :type tokenizer: tokenizers.BaseTokenizer
         :param optimizer: the optimizer to use during training, eg. "adam"
 
         """
         self.name = name
-        self.tokenizer_func = tokenizer_func
-        self.optimzer = optimizer
+        self.tokenizer = tokenizer
+        self.optimizer = optimizer
+
+        # load datasets
+        dataset = load_clean_sentences( 'both')
+
+        print("Prepare english tokenizer")
+        self.eng_texts = dataset[:, 0] # English
+        self.eng_tokenized = tokenizer.tokenize(self.eng_texts, 'en')
+        self.eng_tokenizer = create_tokenizer(self.eng_tokenized)
+        self.eng_vocab_size = len(self.eng_tokenizer.word_index) + 1
+        self.eng_length = max_length(self.eng_tokenized)
+        print('English Vocabulary Size: %d' % self.eng_vocab_size)
+        print('English Max Length: %d' % self.eng_length)
+
+        print("Prepare other language tokenizer")
+        self.other_texts = dataset[:, 1]
+        self.other_tokenized = tokenizer.tokenize(self.other_texts, lang2)
+        self.other_tokenizer = create_tokenizer(self.other_tokenized)
+        self.other_vocab_size = len(self.other_tokenizer.word_index) + 1
+        self.other_length = max_length(self.other_tokenized)
+        print('Other Vocabulary Size: %d' % self.other_vocab_size)
+        print('Other Max Length: %d' % self.other_length)
+
+        self.num_samples = len(self.eng_texts)
+
 
     def get_name(self):
         return self.name
@@ -32,8 +59,6 @@ class BaseModel(object):
 
     def translate(self, source):
         """
-        :param model: Model
-        :param tokenizer: string
         :param source: the input natural language
         :type source: string
         :return: string the most likely translation as a string
@@ -51,30 +76,30 @@ class BaseModel(object):
     def predict_sequence(self, source):
         """
         generate target given source sequence (for all predictions)
-        :type model: Model
-        :type tokenizer: Tokenizer
-        :type source: The input data
-        :return the most likely prediction
+        :type source: The input data in Swedish
+        :return the most likely prediction in English
         """
         # prepare/encode/pad data (pad to length of target language)
 
-        pad_length = self.other_length if self.name.startswith('simple') else None
-
-        testX = encode_sequences(self.tokenizer, self.tokenizer_func(list(source), lang2), pad_length)
-
+        testX = self.get_x(source)
         translations = list()
-        predictions = self.model.predict(source, verbose=0)
-        for preduction in predictions:
-            integers = [np.argmax(vector) for vector in preduction]
+        predictions = self.model.predict(testX, verbose=0)
+        for prediction in predictions:
+            integers = [np.argmax(vector) for vector in prediction]
             target = list()
             for i in integers:
-                word = word_for_id(i, self.tokenizer)
+                # turn integers back to words
+                word = word_for_id(i, self.eng_tokenizer)
                 if word is None:
                     break
                 target.append(word)
-            translations.append(' '.join(target))
+            translations.append(self.tokenizer.join(target, 'en'))
         print("Candidates=", translations)
         return translations[0]
+
+    @abc.abstractmethod
+    def get_x(self, source):
+        return
 
     @staticmethod
     def offset_data(trainY):
@@ -94,8 +119,8 @@ class BaseModel(object):
         :type dataset: ndarray
         """
         dataset_lang2 = dataset[:, 1]
-        self.other_tokenizer = create_tokenizer(self.tokenizer_func(dataset_lang2, lang2))
-        other_tokenized = self.tokenizer_func(dataset_lang2, lang2)
+        self.other_tokenizer = create_tokenizer(self.tokenizer.tokenize(dataset_lang2, lang2))
+        other_tokenized = self.tokenizer.tokenize(dataset_lang2, lang2)
         self.other_length = max_length(other_tokenized)
         # prepare/encode/pad data (pad to length of target language)
         self.pad_length = self.other_length if self.name.startswith('simple') else None
