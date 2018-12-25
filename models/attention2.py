@@ -12,7 +12,6 @@ from keras.models import load_model
 from config import epochs_default, batch_size
 from models.base import BaseModel
 
-from helpers import *
 from train import *
 
 import numpy as np
@@ -29,7 +28,7 @@ class Attention2(BaseModel):
     def __init__(self, name, tokenizer, optimizer):
         BaseModel.__init__(self, name, tokenizer, optimizer)
 
-    def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, latent_dim=256):
+    def define_model(self, src_vocab, target_vocab, latent_dim=256):
         """
         To train:
         encoder_input_data is a 3D array of shape (num_pairs, max_english_sentence_length, num_english_characters) containing a one-hot vectorization of the English sentences.
@@ -39,8 +38,6 @@ class Attention2(BaseModel):
         See also https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
         :param src_vocab: int: the number of different tokens/words in the source language
         :param target_vocab: int: the number of different tokens/words in the target language
-        :param src_timesteps: int: max sentence length of source language (English)
-        :param target_timesteps: max sentence length of target language (Swedish)
         :param latent_dim: the dimensionality of the
         :return: The training model
         """
@@ -51,11 +48,9 @@ class Attention2(BaseModel):
         encoder_embedding = Embedding(src_vocab, latent_dim, name='enc_embedding')(encoder_inputs)
         # The return_state constructor argument configures a RNN layer to return a list where the first entry is the
         # outputs and the next entries are the internal RNN states. This is used to recover the states of the encoder.
-        encoder_outputs, state_h, state_c = LSTM(latent_dim,
-                                                 return_state=True, name='encoder_lstm')(encoder_embedding)
+        encoder_outputs, state_h, state_c = LSTM(latent_dim, return_state=True, name='encoder_lstm')(encoder_embedding)
         # We discard `encoder_outputs` and only keep the states.
         encoder_states = [state_h, state_c]
-
         # Set up the decoder, using `encoder_states` as initial state of the RNN.
         decoder_inputs = Input(shape=(None,), name='dec_inputs')
         decoder_embedding = Embedding(target_vocab, latent_dim, name='dec_embedding')(decoder_inputs)
@@ -134,7 +129,7 @@ class Attention2(BaseModel):
         # Sampling loop for a batch of sequences
         # (to simplify, here we assume a batch of size 1).
         stop_condition = False
-        decoded_sentence = ''
+        decoded_sentence = []
         while not stop_condition:
             output_tokens, h, c = decoder_model.predict([target_seq] + states_value)
 
@@ -148,7 +143,7 @@ class Attention2(BaseModel):
                     len(decoded_sentence) > self.max_decoder_seq_length):
                 stop_condition = True
             else:
-                decoded_sentence += sampled_word + ' '
+                decoded_sentence.append(sampled_word)
 
             # Update the target sequence (of length 1).
             # target_seq.append(sampled_token_index)
@@ -157,7 +152,7 @@ class Attention2(BaseModel):
             # Update states
             states_value = [h, c]
 
-        return decoded_sentence
+        return self.tokenizer.join(decoded_sentence, 'en')
 
 
     def train_save(self, epochs=epochs_default):
@@ -165,41 +160,22 @@ class Attention2(BaseModel):
         Trains a given model with tokenizer and checkpoints it to a file for later
         """
         print("\n###\nAbout to train model %s with tokenizer %s and optimizer %s\n###\n\n"
-              % (__name__, self.tokenizer_func.__name__, self.optimizer))
+              % (__name__, self.tokenizer.__class__.__name__, self.optimizer))
         # load datasets
         dataset = load_clean_sentences('both')
         train = load_clean_sentences('train')
         test = load_clean_sentences('test')
 
-        print("Prepare english tokenizer")
-        dataset_lang1 = dataset[:, 0]
-        eng_tokenized = self.tokenizer_func(dataset_lang1, 'en')
-        eng_tokenized = mark_ends(eng_tokenized)
-        eng_tokenizer = create_tokenizer(eng_tokenized)
-        eng_vocab_size = len(eng_tokenizer.word_index) + 1
-        eng_length = max_length(eng_tokenized)
-        print('English Vocabulary Size: %d' % eng_vocab_size)
-        print('English Max Length: %d' % eng_length)
-
-        print("Prepare other language tokenizer")
-        dataset_lang2 = dataset[:, 1]
-        other_tokenized = self.tokenizer_func(dataset_lang2, lang2)
-        other_tokenizer = create_tokenizer(other_tokenized)
-        other_vocab_size = len(other_tokenizer.word_index) + 1
-        other_length = max_length(other_tokenized)
-        print('Other Vocabulary Size: %d' % other_vocab_size)
-        print('Other Max Length: %d' % other_length)
-
         print("Prepare training data")
-        trainX = encode_sequences(other_tokenizer, self.tokenizer_func(train[:, 1], lang2), other_length)
-        train_tokenized = self.tokenizer_func(train[:, 0], 'en')
+        trainX = encode_sequences(self.other_tokenizer, self.tokenizer.tokenize(train[:, 1], lang2), self.other_length)
+        train_tokenized = self.tokenizer.tokenize(train[:, 0], 'en')
         train_tokenized = mark_ends(train_tokenized)
-        trainY = encode_sequences(eng_tokenizer, train_tokenized, eng_length)
+        trainY = encode_sequences(self.eng_tokenizer, train_tokenized, self.eng_length)
         print("Prepare validation data")
-        testX = encode_sequences(other_tokenizer, self.tokenizer_func(test[:, 1], lang2), other_length)
-        validation_tokenized = self.tokenizer_func(test[:, 0], 'en')
+        testX = encode_sequences(self.other_tokenizer, self.tokenizer.tokenize(test[:, 1], lang2), self.other_length)
+        validation_tokenized = self.tokenizer.tokenize(test[:, 0], 'en')
         validation_tokenized = mark_ends(validation_tokenized)
-        testY = encode_sequences(eng_tokenizer, validation_tokenized, eng_length)
+        testY = encode_sequences(self.eng_tokenizer, validation_tokenized, self.eng_length)
 
         print("\n")
         try:
@@ -208,7 +184,7 @@ class Attention2(BaseModel):
             print("Loaded checkpointed model")
         except:
             print("Define and compile model")
-            model = self.define_model(other_vocab_size, eng_vocab_size, other_length, eng_length)
+            model = self.define_model(self.other_vocab_size, self.eng_vocab_size)
             model.compile(optimizer=self.optimizer, loss='categorical_crossentropy')
 
         if epochs == 0:  # a 'hack' to prepare the models without actually doing any fitting
@@ -224,8 +200,8 @@ class Attention2(BaseModel):
         X = [trainX, trainY]
         testX = [testX, testY]
         # prepare decoder target offset by 1
-        y = encode_1hot(self.offset_data(trainY), eng_vocab_size)
-        testY = encode_1hot(self.offset_data(testY), eng_vocab_size)
+        y = encode_1hot(self.offset_data(trainY), self.eng_vocab_size)
+        testY = encode_1hot(self.offset_data(testY), self.eng_vocab_size)
         # where `X` is Training data and `y` are Target values
         # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
         model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=1)
