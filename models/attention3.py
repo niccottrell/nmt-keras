@@ -1,5 +1,7 @@
 """
 Fork of let2let.py
+
+TODO: Do a version with Dropout
 """
 
 from keras.models import Model
@@ -12,7 +14,6 @@ from models.base import BaseModel
 import numpy as np
 from helpers import *
 import os.path
-
 
 class Attention3(BaseModel):
     # We use "tab" as the "start sequence" character
@@ -70,6 +71,7 @@ class Attention3(BaseModel):
             (self.num_samples, self.max_decoder_seq_length, self.num_decoder_tokens),
             dtype='float32')
 
+        # Create one-hot encoded values directly
         for i, (input_text, target_text) in enumerate(zip(self.other_tokenized, self.eng_tokenized)):
             for t, token in enumerate(input_text):
                 self.encoder_input_data[i, t, self.input_token_index[token]] = 1.
@@ -81,8 +83,7 @@ class Attention3(BaseModel):
                     # and will not include the start character.
                     self.decoder_target_data[i, t - 1, self.target_token_index[token]] = 1.
 
-        # Reverse-lookup token index to decode sequences back to
-        # something readable.
+        # Reverse-lookup token index to decode sequences back to something readable.
         self.reverse_input_token_index = dict(
             (i, token) for token, i in self.input_token_index.items())
         self.reverse_target_token_index = dict(
@@ -97,10 +98,12 @@ class Attention3(BaseModel):
         if os.path.isfile(filename):
             # Load the previous model (layers and weights but NO STATE)
             self.model.load_weights(filename)
+        else:
+            print("No existing model file found: %s" % filename)
 
         if epochs > 0:
             # Prepare checkpoints
-            checkpoint = ModelCheckpoint(filename, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+            checkpoint = self.get_checkpoint(filename)
             # Run training
             self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
                            batch_size=self.batch_size,
@@ -170,11 +173,13 @@ class Attention3(BaseModel):
 
     def translate(self, input_text):
 
+        # tokenize the input sentence
+        tokens = self.tokenizer.tokenize([input_text], lang2)
+
+        # Prepare one-hot encoded ndarray like during training
         encoder_input_data = np.zeros(
             (1, self.max_encoder_seq_length, self.num_encoder_tokens),
             dtype='float32')
-
-        tokens = self.tokenizer.tokenize([input_text], lang2)
         for t, token in enumerate(tokens[0]):
             try:
                 idx = self.input_token_index[token]

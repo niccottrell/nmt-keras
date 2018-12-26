@@ -170,10 +170,11 @@ class Attention(BaseModel):
         testY = encode_sequences(self.eng_tokenizer, validation_tokenized, self.eng_length)
         testY = encode_1hot(testY, self.eng_vocab_size)
 
+        filename = 'checkpoints/' + self.name + '.h5'
         print("\n")
         try:
             # try and load checkpointed model to continue
-            model = load_model('checkpoints/' + self.name + '.h5')
+            model = load_model(filename)
             print("Loaded checkpointed model")
         except:
             print("Define and compile model")
@@ -187,7 +188,7 @@ class Attention(BaseModel):
         print(model.summary())
         plot_model(model, to_file=('checkpoints/' + self.name + '.png'), show_shapes=True)
         print("Fit model")
-        checkpoint = ModelCheckpoint('checkpoints/' + self.name + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+        checkpoint = self.get_checkpoint(filename)
         # the model is saved via a callback checkpoint
         # Need to encode the source input
         trainX = encode_1hot(trainX, self.other_vocab_size)

@@ -162,7 +162,6 @@ class Attention2(BaseModel):
         print("\n###\nAbout to train model %s with tokenizer %s and optimizer %s\n###\n\n"
               % (__name__, self.tokenizer.__class__.__name__, self.optimizer))
         # load datasets
-        dataset = load_clean_sentences('both')
         train = load_clean_sentences('train')
         test = load_clean_sentences('test')
 
@@ -177,10 +176,12 @@ class Attention2(BaseModel):
         validation_tokenized = mark_ends(validation_tokenized)
         testY = encode_sequences(self.eng_tokenizer, validation_tokenized, self.eng_length)
 
+        filename = 'checkpoints/' + self.name + '.h5'
+
         print("\n")
         try:
             # try and load checkpointed model to continue
-            model = load_model('checkpoints/' + self.name + '.h5')
+            model = load_model(filename)
             print("Loaded checkpointed model")
         except:
             print("Define and compile model")
@@ -194,7 +195,7 @@ class Attention2(BaseModel):
         print(model.summary())
         plot_model(model, to_file=('checkpoints/' + self.name + '.png'), show_shapes=True)
         print("Fit model")
-        checkpoint = ModelCheckpoint('checkpoints/' + self.name + '.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+        checkpoint = self.get_checkpoint(filename)
         # the model is saved via a callback checkpoint
         # see attention.py: [encoder_inputs, decoder_inputs]
         X = [trainX, trainY]

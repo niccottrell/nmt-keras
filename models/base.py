@@ -1,6 +1,7 @@
 import abc
 
 import numpy as np
+from keras.callbacks import ModelCheckpoint
 
 from config import epochs_default
 from helpers import word_for_id, lang2, create_tokenizer, max_length, load_clean_sentences
@@ -100,6 +101,9 @@ class BaseModel(object):
     @abc.abstractmethod
     def get_x(self, source):
         return
+
+    def get_checkpoint(self, filename):
+        return ModelCheckpoint(filename, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 
     @staticmethod
     def offset_data(trainY):

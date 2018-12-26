@@ -122,7 +122,7 @@ class Let2Let(BaseModel):
 
         if epochs > 0:
             # Prepare checkpoints
-            checkpoint = ModelCheckpoint(filename, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+            checkpoint = self.get_checkpoint(filename)
             # Run training
             self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
                            batch_size=self.batch_size,

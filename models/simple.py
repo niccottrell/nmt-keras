@@ -71,10 +71,12 @@ class Simple(BaseModel):
 
         ### todo: try reversing the order of Y tokens (for both training and evaluation of course)
 
+        filename = 'checkpoints/' + self.name + '.h5'
+
         print("\n")
         try:
             # try and load checkpointed model to continue
-            self.model = load_model('checkpoints/' + self.name + '.h5')
+            self.model = load_model(filename)
             print("Loaded checkpointed model")
         except:
             print("Define and compile model")
@@ -88,8 +90,7 @@ class Simple(BaseModel):
         print(self.model.summary())
         # plot_model(model, to_file=('checkpoints/' + self.name + '.png'), show_shapes=True)
         print("Fit model")
-        checkpoint = ModelCheckpoint('checkpoints/' + self.name + '.h5', monitor='val_loss', verbose=1,
-                                     save_best_only=True, mode='min')
+        checkpoint = self.get_checkpoint(filename)
         # the model is saved via a callback checkpoint
         X = trainX
         y = trainY
