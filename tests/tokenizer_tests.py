@@ -11,6 +11,7 @@ pos_tag = tokenizers.PosTag()
 replace_proper = tokenizers.ReplaceProper()
 word2phrase = tokenizers.Word2Phrase()
 letters = tokenizers.LetterByLetter()
+hyphenate = tokenizers.Hyphenate()
 
 
 class TokenizerTests(unittest.TestCase):
@@ -26,7 +27,7 @@ class TokenizerTests(unittest.TestCase):
         self.assertFalse(is_in_dict('doog', 'en'))
         self.assertTrue(is_in_dict('dog', 'sv'))
         self.assertTrue(is_in_dict('dög', 'sv'))
-#        self.assertFalse(is_in_dict('dug', 'sv'))
+        # self.assertFalse(is_in_dict('dug', 'sv'))
 
     def test_hunpos_tagger_cache(self):
         self.assertTrue(pos_tag.tokenize(['the dog'], 'en'))
@@ -108,22 +109,22 @@ class TokenizerTests(unittest.TestCase):
         self.assertEqual([pos_tagged_en], res_list)
 
     def test_hyphenate_en(self):
-        self.assertEqual(['dig'], hyphenate('dig', lang='en'))
-        self.assertEqual(['dig', 'i', 'tal'], hyphenate('digital', lang='en'))
-        self.assertEqual(['hos', 'pi', 'tal'], hyphenate('hospital', lang='en'))
+        self.assertEqual(['dig'], hyphenate.tokenize_one('dig', lang='en'))
+        self.assertEqual(['dig', 'i', 'tal'], hyphenate.tokenize_one('digital', lang='en'))
+        self.assertEqual(['hos', 'pi', 'tal'], hyphenate.tokenize_one('hospital', lang='en'))
 
     def test_hyphenate_sv(self):
-        self.assertEqual(['hus'], hyphenate('hus', lang='sv'))
-        self.assertEqual(['sjuk', 'hus'], hyphenate('sjukhus', lang='sv'))
-        self.assertEqual(['sjuk', 'hus', 'et'], hyphenate('sjukhuset', lang='sv'))
+        self.assertEqual(['hus'], hyphenate.tokenize_one('hus', lang='sv'))
+        self.assertEqual(['sjuk', 'hus'], hyphenate.tokenize_one('sjukhus', lang='sv'))
+        self.assertEqual(['sjuk', 'hus', 'et'], hyphenate.tokenize_one('sjukhuset', lang='sv'))
 
     def test_hyphenate_lines(self):
         self.assertEqual([['hat']],
-                         hyphenate_lines(['hat'], lang='en'))
+                         hyphenate.tokenize(['hat'], lang='en'))
         self.assertEqual([['The', ' ', 'cat', ' ', 'in', ' ', 'the', ' ', 'hat']],
-                         hyphenate_lines(['The cat in the hat'], lang='en'))
+                         hyphenate.tokenize(['The cat in the hat'], lang='en'))
         self.assertEqual([['The', ' ', 'fe', 'line', ' ', 'in', ' ', 'the', ' ', 'fe', 'do', 'ra']],
-                         hyphenate_lines(['The feline in the fedora'], lang='en'))
+                         hyphenate.tokenize(['The feline in the fedora'], lang='en'))
 
     def test_replace_proper_en(self):
         self.assertEqual([['hat']],
@@ -153,8 +154,9 @@ class TokenizerTests(unittest.TestCase):
     def test_letters1(self):
         self.assertEqual(['H', 'a', 't'], letters.tokenize_one('Hat', lang='en'))
         self.assertEqual([['H', 'a', 't']], letters.tokenize(['Hat'], lang='en'))
-        self.assertEqual([['T', 'h', 'e', ' ', 'c', 'a', 't', ' ', 'i', 'n', ' ', 't', 'h', 'e', ' ', 'h', 'a', 't', '.']],
-                         letters.tokenize(['The cat in the hat.'], lang='en'))
+        self.assertEqual(
+            [['T', 'h', 'e', ' ', 'c', 'a', 't', ' ', 'i', 'n', ' ', 't', 'h', 'e', ' ', 'h', 'a', 't', '.']],
+            letters.tokenize(['The cat in the hat.'], lang='en'))
 
     def assertEqualSet(self, list1, list2):
         self.assertEqual(set(list1), set(list2))
@@ -173,6 +175,7 @@ class TokenizerTests(unittest.TestCase):
 
     def test_mark_ends(self):
         self.assertEqual([['\t', 'the', 'fat', 'cat', '.', '\n']], mark_ends([['the', 'fat', 'cat', '.']]))
+
 
 if __name__ == '__main__':
     unittest.main()

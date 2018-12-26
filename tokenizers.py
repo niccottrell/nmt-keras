@@ -4,6 +4,8 @@ This module helps us examine/debug the different tokenizers
 import abc
 import string
 
+import pyphen
+
 from helpers import create_tokenizer, max_length, lang2, load_clean_sentences
 from nltk.tokenize import WordPunctTokenizer
 
@@ -289,3 +291,71 @@ class Word2Phrase(BaseTokenizer):
         for row in lines:
             result.append(row)  # train_model
         return result
+
+class Hyphenate(BaseTokenizer):
+
+    dic_sv = pyphen.Pyphen(lang='sv_SE')
+    dic_en = pyphen.Pyphen(lang='en_US')
+
+    def __init__(self):
+        BaseTokenizer.__init__(self, 'hyphenate')
+
+    def get_dic(self, lang):
+        if lang == 'sv' or lang == 'sve' or lang == 'swe':
+            return self.dic_sv
+        else:
+            return self.dic_en
+
+    def hyphenate(self, word, lang):
+        """
+        Hyphenates a single word
+        :param word:
+        :param str lang:
+        :return:
+        """
+        sep = '$'
+        dic = self.get_dic(lang)
+        return dic.inserted(word, hyphen=sep).split(sep)
+
+    def tokenize_one(self, line, lang):
+        """
+        Hyphenate all lines and wrap in a tokenizer
+        :param line: str
+        :param lang: the 2-letter language code
+        :return: list(str)
+        """
+        sep = '$'
+        dic = self.get_dic(lang)
+        next_line = []
+        words = line.split(' ')
+        for idx, word in enumerate(words):
+            word_hyphenated = dic.inserted(word, hyphen=sep)
+            parts = word_hyphenated.split(sep)
+            for part in parts:
+                next_line.append(part)
+            if (idx + 1) < len(words):
+                next_line.append(' ')
+        return next_line
+
+    def tokenize(self, lines, lang):
+        """
+        Hyphenate all lines and wrap in a tokenizer
+        :param lines: list(str)
+        :param lang: the 2-letter language code
+        :return: list(list(str))
+        """
+        sep = '$'
+        dic = self.get_dic(lang)
+        hyphenated_lines = []
+        for line in lines:
+            next_line = []
+            words = line.split(' ')
+            for idx, word in enumerate(words):
+                word_hyphenated = dic.inserted(word, hyphen=sep)
+                parts = word_hyphenated.split(sep)
+                for part in parts:
+                    next_line.append(part)
+                if (idx + 1) < len(words):
+                    next_line.append(' ')
+            hyphenated_lines.append(next_line)
+        return hyphenated_lines

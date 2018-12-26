@@ -5,7 +5,7 @@ import tensorflow as tf
 from helpers import *
 
 from models import attention3
-from tokenizers import SimpleLines, Word2Phrase, ReplaceProper, PosTag, LetterByLetter
+from tokenizers import SimpleLines, Word2Phrase, ReplaceProper, PosTag, LetterByLetter, Hyphenate
 
 print("VERSION", tf.Session(config=tf.ConfigProto(log_device_placement=True)))
 
@@ -18,18 +18,18 @@ models = {
 }
 
 tokenizers = {
-    'a': SimpleLines(),
-    # 'b': hyphenate_lines,
-    # 'c': Word2Phrase(),
-    # 'd': ReplaceProper(),
-    # 'e': PosTag(),
-    'l': LetterByLetter(),
+   # 'a': SimpleLines(),
+   # 'b': Hyphenate(),
+   # 'c': Word2Phrase(),
+   # 'd': ReplaceProper(),
+    'e': PosTag(),
+    # 'l': LetterByLetter(),
 }
 
 # key becomes part of the model name, the value is passed in the optimizer= parameter
 optimizer_opts = {
     # 'sgd': 'sgd',  # default parameters (reported to be more 'stable' than adam)
-    # 'rmsprop': 'sgd',  # default lr=0.001
+    # 'rmsprop': 'rmsprop',  # default lr=0.001
     # 'rmsprop2': optimizers.RMSprop(lr=0.01),  # same as previous but with 10x higher learning rate
     'adam': 'adam'
 }

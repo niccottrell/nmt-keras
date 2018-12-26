@@ -156,52 +156,8 @@ def is_in_dict(word, lang):
     # return hobj.spell(word)
 
 
-
 def is_punct(str):
     return regex.match(r"\p{P}+", str)
-
-
-def hyphenate(word, lang):
-    """
-    Hyphenates a single word
-    :param word:
-    :param str lang:
-    :return:
-    """
-    if lang == 'sv':
-        dic = pyphen.Pyphen(lang='sv_SE')
-    else:
-        dic = pyphen.Pyphen(lang='en_US')
-    sep = '$'
-    return dic.inserted(word, hyphen=sep).split(sep)
-
-
-def hyphenate_lines(lines, lang):
-    """
-    Hyphenate all lines and wrap in a tokenizer
-    :param lines: list(str)
-    :param lang: the 2-letter language code
-    :return: list(list(str))
-    """
-    if lang == 'sv' or lang == 'sve':
-        dic = pyphen.Pyphen(lang='sv_SE')
-    else:
-        dic = pyphen.Pyphen(lang='en_US')
-    sep = '$'
-    hyphenated_lines = []
-    for line in lines:
-        next_line = []
-        words = line.split(' ')
-        for idx, word in enumerate(words):
-            word_hyphenated = dic.inserted(word, hyphen=sep)
-            parts = word_hyphenated.split(sep)
-            for part in parts:
-                next_line.append(part)
-            if (idx + 1) < len(words):
-                next_line.append(' ')
-        hyphenated_lines.append(next_line)
-    return hyphenated_lines
-
 
 def lemmatize_verbs(words):
     """Lemmatize verbs in list of tokenized words"""
