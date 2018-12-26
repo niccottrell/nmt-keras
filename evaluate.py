@@ -10,6 +10,7 @@ def evaluate_model(model_obj, raw_dataset):
     evaluate the skill of the model
     :param model_obj: models.base.BaseModel the model container
     :param raw_dataset: The validation dataset language pairs prior to tokenizer (i.e. actual strings)
+    :return: BLEU-3 score
     """
     print('About to evaluate test set of size %d' % len(raw_dataset))
     actual, predicted = list(), list()
@@ -19,19 +20,20 @@ def evaluate_model(model_obj, raw_dataset):
         translation = model_obj.translate(raw_src)
         if i < 20:
             print('src=[%s], target=[%s], predicted=[%s]' % (raw_src, raw_target, translation))
-        elif i == 80:
-            print('.\n')
+        elif i % 80 == 0:
+            print('.', flush=True)
         else:
-            print('.', end='')
+            print('.', end='', flush=True)
         actual.append(raw_target.split())
         predicted.append(translation.split())
     # calculate BLEU score (at the corpus level)
     print('BLEU-1: %f' % corpus_bleu(actual, predicted, weights=(1.0, 0, 0, 0)))
     print('BLEU-2: %f' % corpus_bleu(actual, predicted, weights=(0.5, 0.5, 0, 0)))
-    print('BLEU-3: %f' % corpus_bleu(actual, predicted, weights=(0.3, 0.3, 0.3, 0)))
+    bleu3 = corpus_bleu(actual, predicted, weights=(0.3, 0.3, 0.3, 0))
+    print('BLEU-3: %f' % bleu3)
     bleu4 = corpus_bleu(actual, predicted, weights=(0.25, 0.25, 0.25, 0.25))
     print('BLEU-4: %f' % bleu4)
-    return bleu4
+    return bleu3
 
 
 def eval_model(model_obj):
