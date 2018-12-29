@@ -13,7 +13,10 @@ import re  # standard regex system
 import traceback
 from nltk.tag.hunpos import HunposTagger
 
+JOIN = '.'
+
 re_punct_digits = re.compile("[\d€{}]+$".format(re.escape(string.punctuation)))
+
 
 def is_noun(word, lang):
     tuples = pos_tag_tokens([word], lang)
@@ -38,7 +41,7 @@ class BaseTokenizer(object):
         :return: string the most likely translation as a string
         :rtype: list(string)
         """
-        return None
+        raise Exception('tokenize_one not implemented')
 
     @abc.abstractmethod
     def tokenize(self, lines, lang):
@@ -48,7 +51,7 @@ class BaseTokenizer(object):
         :return: string the most likely translation as a string
         :rtype: list(string)
         """
-        return None
+        raise Exception('tokenize not implemented')
 
     @abc.abstractmethod
     def join(self, tokens, lang):
@@ -60,7 +63,13 @@ class BaseTokenizer(object):
         :return: string the recombined natural sentence
         :rtype: string)
         """
-        return None
+        raise Exception('join not implemented')
+
+    def post_edit(self, line):
+        line = re.sub(r"\bcan ' t\b", "can't", line)
+        line = re.sub(r"(?i)\bdon ' t\b", "don't", line)
+        line = re.sub(r" '\s*s\b", "'s", line)
+        return line
 
 
 class SimpleLines(BaseTokenizer):
@@ -89,9 +98,11 @@ class SimpleLines(BaseTokenizer):
         return tokenized_lines
 
     def join(self, tokens, lang):
-        return ' '.join(tokens).strip()
+        return self.post_edit(' '.join(tokens).strip())
+
 
 simple_lines = SimpleLines()
+
 
 class LetterByLetter(BaseTokenizer):
 
@@ -176,7 +187,7 @@ class PosTag(BaseTokenizer):
                     result.append(tuple[0])
                 else:
                     pos = tuple[1].decode('utf-8')
-                    result.append(tuple[0] + "." + pos[:2])  # Only take the first 2 letters of the POS, e.g. 'NN_UTR_SIN_DEF_NOM' -> 'NN'
+                    result.append(tuple[0] + JOIN + pos[:2])  # Only take the first 2 letters of the POS, e.g. 'NN_UTR_SIN_DEF_NOM' -> 'NN'
             return result
         except:
             print('Error tagging line `%s` in %s' % (line, lang))
@@ -195,12 +206,21 @@ class PosTag(BaseTokenizer):
         return tagged_lines
 
     def join(self, tokens, lang):
-        # todo: remove tag part before joining
-        return ' '.join(tokens).strip()
+        """
+        :type tokens: list(str)
+        :param lang: str
+        :return: str
+        """
+        # Remove tag part before joining
+        tokens_simple = []
+        for token in tokens:
+            parts = token.split(JOIN, maxsplit=2)
+            tokens_simple.append(parts[0])
+        joined = ' '.join(tokens_simple).strip()
+        return self.post_edit(joined)
 
 
-class ReplaceProper(BaseTokenizer):
-
+class ReplaceProper(SimpleLines):
 
     def __init__(self):
         BaseTokenizer.__init__(self, 'replace_proper')
@@ -235,7 +255,6 @@ class ReplaceProper(BaseTokenizer):
             print('Error tagging line `%s` in %s' % (line, lang))
             traceback.print_exc()
 
-
     def tokenize(self, lines, lang):
         """Post tag lines in bulk
         :param lines: list(str)
@@ -249,29 +268,23 @@ class ReplaceProper(BaseTokenizer):
         return tagged_lines
 
 
-class Word2Phrase(BaseTokenizer):
+# Import the required functions
+from thirdparty.word2phrase import learn_vocab_from_train_iter, filter_vocab, apply
+
+
+class Word2Phrase(SimpleLines):
+    # settings
+    min_count = 3
+    threshold = 25
+
+    model = {}
 
     def __init__(self):
         BaseTokenizer.__init__(self, 'word2phrase')
+        self.model['en'] = self.build_model('en')
+        self.model['sv'] = self.build_model('sv')
 
-    def tokenize(self, lines, lang):
-        """
-        Convert all line inputs to tokenized chunked phrases
-        :param lines: list(str) The lines to process this time
-        :param lang: str The language code (but ignored for now)
-        :return: list(list(str))
-        """
-        # Pre-split the lines
-        tokenized_lines = simple_lines.tokenize(lines, lang)
-
-        # Import the required functions
-        from thirdparty.word2phrase import learn_vocab_from_train_iter, filter_vocab, apply
-
-        # settings
-        min_count = 3
-        threshold = 25
-
-        # TODO: we should cache this and only 'train' once per session per language
+    def build_model(self, lang):
         dataset_both = load_clean_sentences('both')
         # prepare english tokenizer
         lang_idx = 0 if lang == 'en' else 1
@@ -281,19 +294,34 @@ class Word2Phrase(BaseTokenizer):
         # vocab_iter, train_iter = tee(tokenized_lines)
         vocab, train_words = learn_vocab_from_train_iter(dataset_tokenized)
         print("word2phrase.train_model: raw vocab=%d, dataset_thislang=%d" % (len(vocab), train_words))
-        vocab = filter_vocab(vocab, min_count)
+        vocab = filter_vocab(vocab, self.min_count)
         print("word2phrase.train_model: filtered vocab=%d" % len(vocab))
 
-        # Now apply it to these lines
-        lines = apply(tokenized_lines, vocab, train_words, '_', min_count, threshold)
+        return {'train_words': train_words, 'vocab': vocab}
 
+    def tokenize(self, generator, lang):
+        """
+        Convert all line inputs to tokenized chunked phrases
+        :param generator: list(str) The lines to process this time
+        :param lang: str The language code
+        :return: list(list(str))
+        """
+        # Pre-split the lines
+        tokenized_lines = simple_lines.tokenize(generator, lang)
+
+        model = self.model['en' if lang == 'en' else 'sv']
+
+        # Now apply it to these lines
+        generator = apply(tokenized_lines, model['vocab'], model['train_words'], '_', self.min_count, self.threshold)
+
+        # Convert generator to a simple list
         result = []
-        for row in lines:
-            result.append(row)  # train_model
+        for row in generator:
+            result.append(row)
         return result
 
-class Hyphenate(BaseTokenizer):
 
+class Hyphenate(BaseTokenizer):
     dic_sv = pyphen.Pyphen(lang='sv_SE')
     dic_en = pyphen.Pyphen(lang='en_US')
 
@@ -359,3 +387,6 @@ class Hyphenate(BaseTokenizer):
                     next_line.append(' ')
             hyphenated_lines.append(next_line)
         return hyphenated_lines
+
+    def join(self, tokens, lang):
+        return ''.join(tokens).strip()

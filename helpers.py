@@ -175,6 +175,7 @@ def max_length(lines):
     :param lines: list(list(str)
     :return: int
     """
+    assert len(lines) > 0, "lines is empty"
     return max(len(line) for line in lines)
 
 

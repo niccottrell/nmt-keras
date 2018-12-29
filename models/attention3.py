@@ -157,8 +157,8 @@ class Attention3(BaseModel):
         encoder_model = Model(encoder_inputs, encoder_states)
 
         decoder_inputs = model.input[1]  # input_2
-        decoder_state_input_h = Input(shape=(self.latent_dim,), name='input_3')
-        decoder_state_input_c = Input(shape=(self.latent_dim,), name='input_4')
+        decoder_state_input_h = Input(shape=(self.latent_dim,), name='dec_input_h')
+        decoder_state_input_c = Input(shape=(self.latent_dim,), name='dec_input_c')
         decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
         decoder_lstm = model.layers[3]
         decoder_outputs, state_h_dec, state_c_dec = decoder_lstm(
@@ -188,7 +188,8 @@ class Attention3(BaseModel):
                 print("No match for char=" + str(token))
                 pass
 
-        return self.decode_sequence(encoder_input_data[0:1])
+        decoded = self.decode_sequence(encoder_input_data[0:1])
+        return self.tokenizer.post_edit(decoded)
 
     def decode_sequence(self, input_seq):
         """
@@ -196,6 +197,7 @@ class Attention3(BaseModel):
         :return: str: translated natural language
         """
 
+        # todo: do this once
         encoder_model, decoder_model = self.prep_models(self.model)
 
         # Encode the input as state vectors.

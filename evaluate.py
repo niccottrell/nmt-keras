@@ -1,8 +1,11 @@
+import time
+
 from keras.models import load_model
 from nltk.translate.bleu_score import corpus_bleu
 
 import train
 from helpers import *
+from prepare import n_test
 
 
 def evaluate_model(model_obj, raw_dataset):
@@ -27,13 +30,14 @@ def evaluate_model(model_obj, raw_dataset):
         actual.append(raw_target.split())
         predicted.append(translation.split())
     # calculate BLEU score (at the corpus level)
-    print('BLEU-1: %f' % corpus_bleu(actual, predicted, weights=(1.0, 0, 0, 0)))
+    bleu1 = corpus_bleu(actual, predicted, weights=(1.0, 0, 0, 0))
+    print('BLEU-1: %f' % bleu1)
     print('BLEU-2: %f' % corpus_bleu(actual, predicted, weights=(0.5, 0.5, 0, 0)))
     bleu3 = corpus_bleu(actual, predicted, weights=(0.3, 0.3, 0.3, 0))
     print('BLEU-3: %f' % bleu3)
     bleu4 = corpus_bleu(actual, predicted, weights=(0.25, 0.25, 0.25, 0.25))
     print('BLEU-4: %f' % bleu4)
-    return bleu3
+    return bleu1
 
 
 def eval_model(model_obj):
@@ -64,12 +68,13 @@ def eval_model(model_obj):
     # evaluate_model(model_obj, train)
     # test on some test sequences
     print('Evaluating testing set: test=%s' % (str(test)))
-    test_bleu4 = evaluate_model(model_obj, test)
-    return test_bleu4
+    test_bleu = evaluate_model(model_obj, test)
+    return test_bleu
 
 
 def evaluate_all():
     summary = {}
+    time_taken = {}
     for model_name, model_class in train.models.items():
         for token_id, tokenizer in train.tokenizers.items():
             for opt_id, optimizer in train.optimizer_opts.items():
@@ -79,15 +84,19 @@ def evaluate_all():
                     # prepare the attention decoder model (with a hack)
                     model_obj = model_class(filename, tokenizer, optimizer)
                     model_obj.train_save(epochs=0)
-                    # save each one
+                    # evaluate each model (and time it)
+                    start = time.clock()
                     test_bleu4 = eval_model(model_obj)
                     summary[filename] = test_bleu4
+                    elapsed = time.clock() - start
+                    time_taken[filename] = elapsed
                 except:
                     traceback.print_exc()
                     pass
     # print out the summary test BLEU-4 scores
     for model_name, score in summary.items():
-        print('%s=%f' % (model_name, score))
+        total_time = time_taken[model_name]
+        print('%s=%f (took %d ms per sentence)' % (model_name, score, total_time/n_test))
 
 
 if __name__ == '__main__':

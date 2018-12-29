@@ -18,12 +18,12 @@ models = {
 }
 
 tokenizers = {
-   # 'a': SimpleLines(),
-   # 'b': Hyphenate(),
-   # 'c': Word2Phrase(),
-   # 'd': ReplaceProper(),
+  #  'a': SimpleLines(),
+    'b': Hyphenate(),
+    'c': Word2Phrase(),
+    'd': ReplaceProper(),
     'e': PosTag(),
-    # 'l': LetterByLetter(),
+     'l': LetterByLetter(),
 }
 
 # key becomes part of the model name, the value is passed in the optimizer= parameter
@@ -43,6 +43,7 @@ def train_all():
                 # save each one
                 filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
                 try:
+                    print("About to train %s" % filename)
                     model_obj = model_class(filename, tokenizer, optimizer)
                     model_obj.train_save()
                 except:
