@@ -96,7 +96,7 @@ def evaluate_all():
     # print out the summary test BLEU-4 scores
     for model_name, score in summary.items():
         total_time = time_taken[model_name]
-        print('%s=%f (took %d ms per sentence)' % (model_name, score, total_time/n_test))
+        print('%s=%f (took %d s per sentence)' % (model_name, score, total_time/n_test))
 
 
 if __name__ == '__main__':

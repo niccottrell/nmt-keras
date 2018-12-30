@@ -28,11 +28,15 @@ class Attention3(BaseModel):
     input_token_index = dict()
     target_token_index = dict()
 
+    # Cache the encode models too
+    encoder_model = None
+    decoder_model = None
+
     def __init__(self, name, tokenizer, optimizer):
         BaseModel.__init__(self, name, tokenizer, optimizer)
 
         # Collection all tokens across all input lines
-        self.other_tokens = set() # input
+        self.other_tokens = set()  # input
         self.eng_tokens = {self.CH_START, self.CH_END}  # target
 
         for idx, line in enumerate(self.eng_texts):
@@ -150,26 +154,28 @@ class Attention3(BaseModel):
         :return: (encoder_model, decoder_model)
         """
 
-        # Redefine encoder model (needs to work even when the model has just been loaded from an h5 file)
-        encoder_inputs = model.input[0]  # input_1
-        encoder_outputs, state_h_enc, state_c_enc = model.layers[2].output  # lstm_1
-        encoder_states = [state_h_enc, state_c_enc]
-        encoder_model = Model(encoder_inputs, encoder_states)
+        if self.encoder_model == None:
+            # Redefine encoder model (needs to work even when the model has just been loaded from an h5 file)
+            encoder_inputs = model.input[0]  # input_1
+            encoder_outputs, state_h_enc, state_c_enc = model.layers[2].output  # lstm_1
+            encoder_states = [state_h_enc, state_c_enc]
+            self.encoder_model = Model(encoder_inputs, encoder_states)
 
-        decoder_inputs = model.input[1]  # input_2
-        decoder_state_input_h = Input(shape=(self.latent_dim,), name='dec_input_h')
-        decoder_state_input_c = Input(shape=(self.latent_dim,), name='dec_input_c')
-        decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
-        decoder_lstm = model.layers[3]
-        decoder_outputs, state_h_dec, state_c_dec = decoder_lstm(
-            decoder_inputs, initial_state=decoder_states_inputs)
-        decoder_states = [state_h_dec, state_c_dec]
-        decoder_dense = model.layers[4]
-        decoder_outputs = decoder_dense(decoder_outputs)
-        decoder_model = Model(
-            [decoder_inputs] + decoder_states_inputs,
-            [decoder_outputs] + decoder_states)
-        return (encoder_model, decoder_model)
+            decoder_inputs = model.input[1]  # input_2
+            decoder_state_input_h = Input(shape=(self.latent_dim,), name='dec_input_h')
+            decoder_state_input_c = Input(shape=(self.latent_dim,), name='dec_input_c')
+            decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+            decoder_lstm = model.layers[3]
+            decoder_outputs, state_h_dec, state_c_dec = decoder_lstm(
+                decoder_inputs, initial_state=decoder_states_inputs)
+            decoder_states = [state_h_dec, state_c_dec]
+            decoder_dense = model.layers[4]
+            decoder_outputs = decoder_dense(decoder_outputs)
+            self.decoder_model = Model(
+                [decoder_inputs] + decoder_states_inputs,
+                [decoder_outputs] + decoder_states)
+
+        return self.encoder_model, self.decoder_model
 
     def translate(self, input_text):
 
@@ -197,7 +203,6 @@ class Attention3(BaseModel):
         :return: str: translated natural language
         """
 
-        # todo: do this once
         encoder_model, decoder_model = self.prep_models(self.model)
 
         # Encode the input as state vectors.
