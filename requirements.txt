@@ -11,6 +11,6 @@ hunspell
 pyphen
 unidecode
 regex
-pydot
+pydot  # for graphing models
 msgpack
 nomkl

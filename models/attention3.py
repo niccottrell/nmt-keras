@@ -5,7 +5,8 @@ Fork of let2let.py
 
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense, Dropout
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, CSVLogger
+from keras.utils import plot_model
 
 from config import epochs_default
 from models.base import BaseModel
@@ -97,26 +98,31 @@ class Attention3(BaseModel):
 
         self.model = self.define_model()
 
-        filename = 'checkpoints/' + self.name + '.h5'
+        filename = 'checkpoints/' + self.name
 
         if os.path.isfile(filename):
             # Load the previous model (layers and weights but NO STATE)
-            self.model.load_weights(filename)
+            self.model.load_weights(filename + '.h5')
         else:
             print("No existing model file found: %s" % filename)
+            # Plot the model and save it too
+            plot_model(self.model, to_file=(filename + '.png'), show_shapes=True)
 
         if epochs > 0:
             # Prepare checkpoints
-            checkpoint = self.get_checkpoint(filename)
+            checkpoint = self.get_checkpoint(filename + '.h5')
+            logger = CSVLogger(filename + '.log', separator=',', append=True)
             # Run training
             print("About to fit with batch_size=%d" % self.batch_size)
-            self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
-                           batch_size=self.batch_size,
-                           epochs=epochs,
-                           validation_split=0.2,
-                           callbacks=[checkpoint])
+            history = self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
+                                     batch_size=self.batch_size,
+                                     epochs=epochs,
+                                     validation_split=0.2,
+                                     callbacks=[checkpoint, logger])
             # Save model
-            self.model.save(filename)
+            self.model.save(filename + '.h5')
+            # Print the training history
+            print(history.history['val_loss'])
 
     def define_model(self):
         # Define an input sequence and process it.

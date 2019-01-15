@@ -185,6 +185,10 @@ http://pyphen.org/
 
 Check version:
 
+### Graphviz
+
+On Mac, install with `brew install graphviz`
+
 # python
 
 ```
