@@ -53,6 +53,12 @@ conda config --add channels conda-forge
 conda install <package-name>
 ```
 
+## Windows considerations
+
+Ensure that you are running the 64-bit version of Python.
+
+You may need to increase the virtual memory available to the OS via the Advanced Settings > Performance Settings > Advanced > Virtual memory settings. 
+
 ## Install hunspell and dictionaries
 
 ### On Mac
@@ -65,6 +71,11 @@ wget http://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.dic
 wget https://cgit.freedesktop.org/libreoffice/dictionaries/plain/sv_SE/sv_SE.aff
 wget https://cgit.freedesktop.org/libreoffice/dictionaries/plain/sv_SE/sv_SE.dic
 ```
+
+### On Windows
+
+Download https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/hunpos/hunpos-1.0-win.zip
+to thirdparty\hunpos-win
 
 ### Install POS-Tagging for Swedish
 

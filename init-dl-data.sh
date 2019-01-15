@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
+# make a directory to store model checkpoints
+mkdir -p checkpoints
+
+curl -o swe-eng.zip http://www.manythings.org/anki/swe-eng.zip
+unzip swe-eng.zip
+
 mkdir -p nltk_data
 curl -o nltk_data/punkt.zip https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/tokenizers/punkt.zip
 curl -o nltk_data/averaged_perceptron_tagger.zip https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/taggers/averaged_perceptron_tagger.zip
@@ -21,3 +27,4 @@ gunzip -f suc-suctags.model.gz
 
 wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/hunpos/en_wsj.model.gz
 gunzip -f en_wsj.model.gz
+mv english.model en_wsj.model

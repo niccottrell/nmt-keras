@@ -131,7 +131,7 @@ def is_capitalized(word):
 
 
 def built_dict(path):
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return dict([line.split() for line in f])
 
 
