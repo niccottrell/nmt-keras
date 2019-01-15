@@ -1,6 +1,8 @@
-keras==2.1.6
+# keras==2.1.6
+keras-gpu
 keras-preprocessing
-tensorflow==1.12.0
+# tensorflow==1.12.0
+tensorflow-gpu
 pymongo
 numpy
 requests

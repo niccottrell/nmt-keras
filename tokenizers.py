@@ -2,6 +2,7 @@
 This module helps us examine/debug the different tokenizers
 """
 import abc
+import platform
 import string
 
 import pyphen
@@ -159,7 +160,10 @@ def pos_tag_tokens(line, lang):
             model = 'suc-suctags.model'
             enc = 'ISO-8859-1'
         # build the tagger
-        ht = HunposTagger(model, path_to_bin='./hunpos-tag', encoding=enc)
+        if platform.system() == 'Windows':
+            ht = HunposTagger(model, path_to_bin=r'.\thirdparty\hunpos-win\hunpos-tag.exe', encoding=enc)
+        else:
+            ht = HunposTagger(model, path_to_bin='./hunpos-tag', encoding=enc)
         # cache it
         ht_cache[iso3] = ht
     tuples = ht.tag(line)

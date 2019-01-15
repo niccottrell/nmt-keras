@@ -1,11 +1,10 @@
 """
 Fork of let2let.py
 
-TODO: Do a version with Dropout
 """
 
 from keras.models import Model
-from keras.layers import Input, LSTM, Dense
+from keras.layers import Input, LSTM, Dense, Dropout
 from keras.callbacks import ModelCheckpoint
 
 from config import epochs_default
@@ -15,6 +14,7 @@ import numpy as np
 from helpers import *
 import os.path
 
+
 class Attention3(BaseModel):
     # We use "tab" as the "start sequence" character
     # for the targets, and "\n" as "end sequence" character.
@@ -22,7 +22,6 @@ class Attention3(BaseModel):
     CH_END = '\n'
 
     batch_size = 64  # Batch size for training.
-    epochs = 10  # Number of epochs to train for.
     latent_dim = 256  # Latent dimensionality of the encoding space.
 
     input_token_index = dict()
@@ -32,10 +31,11 @@ class Attention3(BaseModel):
     encoder_model = None
     decoder_model = None
 
-    def __init__(self, name, tokenizer, optimizer):
+    def __init__(self, name, tokenizer, optimizer, include_dropout=False):
         BaseModel.__init__(self, name, tokenizer, optimizer)
 
         # Collection all tokens across all input lines
+        self.include_dropout = include_dropout
         self.other_tokens = set()  # input
         self.eng_tokens = {self.CH_START, self.CH_END}  # target
 
@@ -109,6 +109,7 @@ class Attention3(BaseModel):
             # Prepare checkpoints
             checkpoint = self.get_checkpoint(filename)
             # Run training
+            print("About to fit with batch_size=%d" % self.batch_size)
             self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
                            batch_size=self.batch_size,
                            epochs=epochs,
@@ -132,7 +133,11 @@ class Attention3(BaseModel):
         decoder_lstm = LSTM(self.latent_dim, return_sequences=True, return_state=True)
         decoder_outputs_interim, _, _ = decoder_lstm(decoder_inputs, initial_state=encoder_states)
         decoder_dense = Dense(self.num_decoder_tokens, activation='softmax')
-        decoder_outputs = decoder_dense(decoder_outputs_interim)
+        if self.include_dropout:
+            decoder_dropout = Dropout(0.2)
+            decoder_outputs = decoder_dropout(decoder_dense(decoder_outputs_interim))
+        else:
+            decoder_outputs = decoder_dense(decoder_outputs_interim)
         # Define the model that will turn
         # `encoder_input_data` & `decoder_input_data` into `decoder_target_data`
         model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
@@ -154,7 +159,7 @@ class Attention3(BaseModel):
         :return: (encoder_model, decoder_model)
         """
 
-        if self.encoder_model == None:
+        if self.encoder_model is None:
             # Redefine encoder model (needs to work even when the model has just been loaded from an h5 file)
             encoder_inputs = model.input[0]  # input_1
             encoder_outputs, state_h_enc, state_c_enc = model.layers[2].output  # lstm_1
@@ -253,3 +258,10 @@ class Attention3(BaseModel):
             print('-')
             print('Input sentence:', self.other_texts[seq_index])
             print('Decoded sentence:', decoded_sentence)
+
+
+class AttentionWithDropout(Attention3):
+
+    def __init__(self, name, tokenizer, optimizer):
+        Attention3.__init__(self, name, tokenizer, optimizer, True)
+        self.batch_size = 16  # Lower batch size since it's more complex

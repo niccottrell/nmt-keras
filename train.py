@@ -4,21 +4,22 @@ This module trains a model and stores it in a file
 import tensorflow as tf
 from helpers import *
 
-from models import attention3
+from models import attention3, simple
 from tokenizers import SimpleLines, Word2Phrase, ReplaceProper, PosTag, LetterByLetter, Hyphenate
 
 print("VERSION", tf.Session(config=tf.ConfigProto(log_device_placement=True)))
 
 models = {
-    # 'simple': simple.Simple,
+ #'simple': simple.Simple,
     # 'dense': attention.Attention
     # 'let2let': let2let.Let2Let,
     #    'dense2': attention2.Attention2
-    'att3': attention3.Attention3
+   # 'att3': attention3.Attention3
+    'att_dropout': attention3.AttentionWithDropout
 }
 
 tokenizers = {
-  #  'a': SimpleLines(),
+   # 'a': SimpleLines(),
     'b': Hyphenate(),
     'c': Word2Phrase(),
     'd': ReplaceProper(),

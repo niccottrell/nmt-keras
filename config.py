@@ -2,7 +2,7 @@ import nltk
 nltk_data='./nltk_data/'
 nltk.data.path.append(nltk_data)
 
-epochs_default = 20
+epochs_default = 200
 
 latent_dim = 256  # Dimensionality of word-embedding (and so LSTM layer)
 

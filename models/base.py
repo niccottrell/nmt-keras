@@ -8,6 +8,7 @@ from helpers import word_for_id, lang2, create_tokenizer, max_length, load_clean
 
 import tokenizers
 
+
 class BaseModel(object):
 
     model = None # The keras.Model
@@ -97,10 +98,6 @@ class BaseModel(object):
             translations.append(self.tokenizer.join(target, 'en'))
         print("Candidates=", translations)
         return translations[0]
-
-    @abc.abstractmethod
-    def get_x(self, source):
-        return
 
     def get_checkpoint(self, filename):
         return ModelCheckpoint(filename, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
