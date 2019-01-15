@@ -4,8 +4,9 @@ This module defines a simple model with fixed lengths, with input passed as a 1-
 See: https://chunml.github.io/ChunML.github.io/project/Sequence-To-Sequence/
 
 """
+import os
 
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, CSVLogger
 from keras.layers import Dense, Embedding, LSTM, RepeatVector, TimeDistributed
 from keras.models import Sequential, load_model
 from keras.utils import plot_model
@@ -71,17 +72,20 @@ class Simple(BaseModel):
 
         ### todo: try reversing the order of Y tokens (for both training and evaluation of course)
 
-        filename = 'checkpoints/' + self.name + '.h5'
+        self.model = self.define_model(self.other_vocab_size, self.eng_vocab_size, self.other_length, self.eng_length)
+        self.model.compile(optimizer=self.optimizer, loss='categorical_crossentropy')
+
+        filename = 'checkpoints/' + self.name
+
+        if os.path.isfile(filename):
+            # Load the previous model (layers and weights but NO STATE)
+            self.model.load_weights(filename + '.h5')
+        else:
+            print("No existing model file found: %s" % filename)
+            # Plot the model and save it too
+            plot_model(self.model, to_file=(filename + '.png'), show_shapes=True)
 
         print("\n")
-        try:
-            # try and load checkpointed model to continue
-            self.model = load_model(filename)
-            print("Loaded checkpointed model")
-        except:
-            print("Define and compile model")
-            self.model = self.define_model(self.other_vocab_size, self.eng_vocab_size, self.other_length, self.eng_length)
-            self.model.compile(optimizer=self.optimizer, loss='categorical_crossentropy')
 
         if epochs == 0:  # a 'hack' to prepare the models without actually doing any fitting
             return
@@ -90,10 +94,15 @@ class Simple(BaseModel):
         print(self.model.summary())
         # plot_model(model, to_file=('checkpoints/' + self.name + '.png'), show_shapes=True)
         print("Fit model")
-        checkpoint = self.get_checkpoint(filename)
+        checkpoint = self.get_checkpoint(filename + '.h5')
+        logger = CSVLogger(filename + '.log', separator=',', append=True)
         # the model is saved via a callback checkpoint
         X = trainX
         y = trainY
         # where `X` is Training data and `y` are Target values
         # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
-        self.model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_data=(testX, testY), callbacks=[checkpoint], verbose=1)
+        self.model.fit(X, y, validation_data=(testX, testY),
+                       epochs=epochs,
+                       batch_size=batch_size,
+                       callbacks=[checkpoint, logger],
+                       verbose=1)
