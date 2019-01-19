@@ -95,7 +95,7 @@ class Simple(BaseModel):
         # plot_model(model, to_file=('checkpoints/' + self.name + '.png'), show_shapes=True)
         print("Fit model")
         checkpoint = self.get_checkpoint(filename + '.h5')
-        logger = CSVLogger(filename + '.log', separator=',', append=True)
+        logger = CSVLogger(filename + '.csv', separator=',', append=True)
         # the model is saved via a callback checkpoint
         X = trainX
         y = trainY

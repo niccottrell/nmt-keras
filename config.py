@@ -6,5 +6,5 @@ epochs_default = 200
 
 latent_dim = 256  # Dimensionality of word-embedding (and so LSTM layer)
 
-batch_size = 64   # TODO: Is this batch size too big? (Default seems to be 32)
+batch_size = 64   # Default is 32, and we'll need to turn this down for some models so they fit in the GPU's RAM
 

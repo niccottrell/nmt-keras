@@ -11,15 +11,14 @@ print("VERSION", tf.Session(config=tf.ConfigProto(log_device_placement=True)))
 
 models = {
  #'simple': simple.Simple,
-    # 'dense': attention.Attention
     # 'let2let': let2let.Let2Let,
-    #    'dense2': attention2.Attention2
    # 'att3': attention3.Attention3
-    'att_dropout': attention3.AttentionWithDropout
+    'att512': attention3.Attention512,
+    'attdropout': attention3.AttentionWithDropout
 }
 
 tokenizers = {
-   # 'a': SimpleLines(),
+    'a': SimpleLines(),
     'b': Hyphenate(),
     'c': Word2Phrase(),
     'd': ReplaceProper(),
@@ -30,7 +29,7 @@ tokenizers = {
 # key becomes part of the model name, the value is passed in the optimizer= parameter
 optimizer_opts = {
     # 'sgd': 'sgd',  # default parameters (reported to be more 'stable' than adam)
-    # 'rmsprop': 'rmsprop',  # default lr=0.001
+    'rmsprop': 'rmsprop',  # default lr=0.001
     # 'rmsprop2': optimizers.RMSprop(lr=0.01),  # same as previous but with 10x higher learning rate
     'adam': 'adam'
 }

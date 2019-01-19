@@ -23,7 +23,7 @@ class Attention3(BaseModel):
     CH_END = '\n'
 
     batch_size = 64  # Batch size for training.
-    latent_dim = 256  # Latent dimensionality of the encoding space.
+    latent_dim = None  # Latent dimensionality of the encoding space.
 
     input_token_index = dict()
     target_token_index = dict()
@@ -32,11 +32,12 @@ class Attention3(BaseModel):
     encoder_model = None
     decoder_model = None
 
-    def __init__(self, name, tokenizer, optimizer, include_dropout=False):
+    def __init__(self, name, tokenizer, optimizer, include_dropout=False, latent_dim=256):
         BaseModel.__init__(self, name, tokenizer, optimizer)
 
         # Collection all tokens across all input lines
         self.include_dropout = include_dropout
+        self.latent_dim = latent_dim
         self.other_tokens = set()  # input
         self.eng_tokens = {self.CH_START, self.CH_END}  # target
 
@@ -68,10 +69,10 @@ class Attention3(BaseModel):
 
         self.encoder_input_data = np.zeros(
             (self.num_samples, self.max_encoder_seq_length, self.num_encoder_tokens),
-            dtype='float32')
+            dtype='uint8')
         self.decoder_input_data = np.zeros(
             (self.num_samples, self.max_decoder_seq_length, self.num_decoder_tokens),
-            dtype='float32')
+            dtype='uint8')
         self.decoder_target_data = np.zeros(
             (self.num_samples, self.max_decoder_seq_length, self.num_decoder_tokens),
             dtype='float32')
@@ -111,7 +112,7 @@ class Attention3(BaseModel):
         if epochs > 0:
             # Prepare checkpoints
             checkpoint = self.get_checkpoint(filename + '.h5')
-            logger = CSVLogger(filename + '.log', separator=',', append=True)
+            logger = CSVLogger(filename + '.csv', separator=',', append=True)
             # Run training
             print("About to fit with batch_size=%d" % self.batch_size)
             history = self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
@@ -141,7 +142,7 @@ class Attention3(BaseModel):
         decoder_dense = Dense(self.num_decoder_tokens, activation='softmax')
         if self.include_dropout:
             decoder_dropout = Dropout(0.2)
-            decoder_outputs = decoder_dropout(decoder_dense(decoder_outputs_interim))
+            decoder_outputs = decoder_dense(decoder_dropout(decoder_outputs_interim))
         else:
             decoder_outputs = decoder_dense(decoder_outputs_interim)
         # Define the model that will turn
@@ -269,5 +270,10 @@ class Attention3(BaseModel):
 class AttentionWithDropout(Attention3):
 
     def __init__(self, name, tokenizer, optimizer):
-        Attention3.__init__(self, name, tokenizer, optimizer, True)
-        self.batch_size = 16  # Lower batch size since it's more complex
+        Attention3.__init__(self, name, tokenizer, optimizer, include_dropout=True)
+        self.batch_size = 12  # Lower batch size since it's more complex
+
+class Attention512(Attention3):
+
+    def __init__(self, name, tokenizer, optimizer):
+        Attention3.__init__(self, name, tokenizer, optimizer, latent_dim=512)
