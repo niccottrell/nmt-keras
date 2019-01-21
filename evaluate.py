@@ -72,32 +72,35 @@ def eval_model(model_obj):
     return test_bleu
 
 
-def evaluate_all():
+def evaluate_all(model_filter=None, token_filter=None, opt_filter=None):
     summary = {}
     time_taken = {}
     for model_name, model_class in train.models.items():
-        for token_id, tokenizer in train.tokenizers.items():
-            for opt_id, optimizer in train.optimizer_opts.items():
-                try:
-                    # define a unique name for this combination
-                    filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
-                    # prepare the attention decoder model (with a hack)
-                    model_obj = model_class(filename, tokenizer, optimizer)
-                    model_obj.train_save(epochs=0)
-                    # evaluate each model (and time it)
-                    start = time.clock()
-                    test_bleu4 = eval_model(model_obj)
-                    summary[filename] = test_bleu4
-                    elapsed = time.clock() - start
-                    time_taken[filename] = elapsed
-                except:
-                    traceback.print_exc()
-                    pass
+        if model_filter is None or model_filter == model_name:
+            for token_id, tokenizer in train.tokenizers.items():
+                if token_filter is None or token_filter == token_id:
+                    for opt_id, optimizer in train.optimizer_opts.items():
+                        if opt_filter is None or opt_filter == opt_id:
+                            try:
+                                # define a unique name for this combination
+                                filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
+                                # prepare the attention decoder model (with a hack)
+                                model_obj = model_class(filename, tokenizer, optimizer)
+                                model_obj.train_save(epochs=0)
+                                # evaluate each model (and time it)
+                                start = time.clock()
+                                test_bleu = eval_model(model_obj)
+                                summary[filename] = test_bleu
+                                elapsed = time.clock() - start
+                                time_taken[filename] = elapsed
+                            except:
+                                traceback.print_exc()
+                                pass
     # print out the summary test BLEU-4 scores
     for model_name, score in summary.items():
         total_time = time_taken[model_name]
         print('%s=%f (took %d s per sentence)' % (model_name, score, total_time/n_test))
-
+    return summary
 
 if __name__ == '__main__':
     evaluate_all()
