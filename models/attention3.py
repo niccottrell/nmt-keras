@@ -75,7 +75,7 @@ class Attention3(BaseModel):
             dtype='uint8')
         self.decoder_target_data = np.zeros(
             (self.num_samples, self.max_decoder_seq_length, self.num_decoder_tokens),
-            dtype='float32')
+            dtype='uint8')
 
         # Create one-hot encoded values directly
         for i, (input_text, target_text) in enumerate(zip(self.other_tokenized, self.eng_tokenized)):
@@ -101,8 +101,9 @@ class Attention3(BaseModel):
 
         filename = 'checkpoints/' + self.name
 
-        if os.path.isfile(filename):
+        if os.path.isfile(filename + '.h5'):
             # Load the previous model (layers and weights but NO STATE)
+            print("Loading previous weights: %s" % filename)
             self.model.load_weights(filename + '.h5')
         else:
             print("No existing model file found: %s" % filename)
@@ -272,6 +273,7 @@ class AttentionWithDropout(Attention3):
     def __init__(self, name, tokenizer, optimizer):
         Attention3.__init__(self, name, tokenizer, optimizer, include_dropout=True)
         self.batch_size = 12  # Lower batch size since it's more complex
+
 
 class Attention512(Attention3):
 
