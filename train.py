@@ -23,7 +23,7 @@ tokenizers = {
     'c': Word2Phrase(),
     'd': ReplaceProper(),
     'e': PosTag(),
-     'l': LetterByLetter(),
+    'l': LetterByLetter(),
 }
 
 # key becomes part of the model name, the value is passed in the optimizer= parameter

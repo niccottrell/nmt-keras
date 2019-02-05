@@ -1,42 +1,17 @@
-# README #
+# README
 
-This is a test for NMT using Keras
-
-# Via pure Docker
-
-```
-docker build -t kerasnmt .
-docker run --name my-nmt kerasnmt
-```
-To ssh in:
-```sh
-docker exec -it my-nmt bash 
-```
-
-To stop it:
-```sh
-docker stop $(docker ps -q --filter ancestor=kerasnmt)
-```
-or
-```
-docker stop my-nmt
-```
-
-
-
-# Via Docker Compose
-
-```sh
-docker-compose up --build
-```
-
-```
-docker run -it nic/keras:v2 bash
-```
-
-
+The project is designed test various models for translation Swedish sentences to English. 
+It uses Keras to define the models, and Tensorflow as the backend. Various models are tested, along with different tokenizing options and optimizers.
+The results are scored using the BLEU unigram method which looks for the occurences of all keywords but doesn't consider word order. The highest results achieved so far is a score of 0.23 out of a maximum of 1.00. 
+The low scores are probably based on the limited training set. 
 
 # Environment
+
+The development of this project assumes Python 3.6, and the easiest way to set up the correct packages is via Anaconda:
+
+## Hardware
+
+The models train much better with an Nvidia GPU. This is a standard Tensorflow requirement for performant neural net training, and needs the CUDA drivers (amongst others) to work.
 
 ## Install Conda
 
@@ -45,8 +20,9 @@ Download and install via https://www.anaconda.com/download/
 ```sh
 conda create --name nmt-keras python=3.6
 source activate nmt-keras
-
 ```
+
+You may need to activate extra channels:
 
 ```sh
 conda config --add channels conda-forge 
@@ -63,7 +39,7 @@ You may need to increase the virtual memory available to the OS via the Advanced
 
 ### On Mac
 
-```
+```sh
 brew install hunspell
 cd ~/Library/Spelling
 wget http://cgit.freedesktop.org/libreoffice/dictionaries/plain/en/en_US.aff
@@ -77,7 +53,7 @@ wget https://cgit.freedesktop.org/libreoffice/dictionaries/plain/sv_SE/sv_SE.dic
 Download https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/hunpos/hunpos-1.0-win.zip
 to thirdparty\hunpos-win
 
-### Install POS-Tagging for Swedish
+### Install POS-Tagging models for Swedish
 
 ```
 wget http://stp.lingfil.uu.se/~bea/resources/hunpos/suc-suctags.model.gz
@@ -87,103 +63,24 @@ gunzip suc-suctags.model.gz
 wget https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/hunpos/en_wsj.model.gz
 gunzip en_wsj.model.gz
 ```
+
 ## Install Python packages
 
-Use pip to read from requirements.txt
+Use `pip` to read from `requirements.txt`
 
-
-Initial code from https://machinelearningmastery.com/develop-neural-machine-translation-system-keras/
+## Download training set 
 
 Download content at http://www.manythings.org/anki/swe-eng.zip
 
-From http://opus.nlpl.eu/Europarl.php
-http://opus.nlpl.eu/download.php?f=Europarl/en-sv.xml.gz
-or
-http://opus.nlpl.eu/download.php?f=Europarl/en-sv.tmx.gz
+## Automatic installer
 
+Most of the steps above should work on Mac/Linux by running the `init.sh` script.
 
-http://opus.nlpl.eu/download.php?f=Wikipedia/de-en.txt.zip
-http://opus.nlpl.eu/download.php?f=GlobalVoices/en-sv.tmx.gz
-http://www.manythings.org/anki/
-http://www.manythings.org/anki/swe-eng.zip
+## Libraries used
 
-On MacBook Pro plugged in, epochs start at about 45s with 9000 samples
+### Pyphen
 
-Install tensorflow from source
-https://www.tensorflow.org/install/install_sources
-https://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html
-https://metakermit.com/2017/compiling-tensorflow-with-gpu-support-on-a-macbook-pro/
-https://medium.com/@dhillonkannabhiran/installing-tensorflow-1-4-with-gpu-support-cuda-8-cudnn-6-on-os-x-10-12-6-dca75235417c
-Install CUDA drivers from https://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html
-e.g. https://developer.nvidia.com/compute/cuda/9.1/Prod/network_installers/cuda_9.1.128_mac_network
-On mac
-brew cask install nvidia-cuda
-pip install --upgrade pip setuptools
-
-
-# Download dictionaries
-
-https://cgit.freedesktop.org/libreoffice/dictionaries/tree/sv_SE/sv_SE.dic
-https://cgit.freedesktop.org/libreoffice/dictionaries/tree/en/en_US.dic
-
-# Download code
-
-```sh
-yum install -y git
-git clone https://bitbucket.org/niccottrell/nmt-keras.git
-```
-
-# EC2
-
-## AMI
-
-Deep Learning AMI (Amazon Linux) Version 12.0 - ami-00051cea/246161cf
-
-Comes with latest binaries of deep learning frameworks pre-installed in separate virtual environments: MXNet, TensorFlow, Caffe, Caffe2, PyTorch, Keras, Chainer, Theano and CNTK. Fully-configured with NVidia CUDA, cuDNN and NCCL as well as Intel MKL-DNN
-
-Root device type: ebs 
-Virtualization type: hvm 
-ENA Enabled: Yes
-
-Deep Learning Base AMI (Amazon Linux) Version 9.0 - ami-43a5a4a8
-
-Hint: start with a t2.micro while you get the environment setup correctly, then stop the instance, change the instance type to p3 and start again before training.
-
-## Instance type
-
-* Amazon EC2 P3 Instances have up to 8 NVIDIA Tesla V100 GPUs.
-* Amazon EC2 P2 Instances have up to 16 NVIDIA NVIDIA K80 GPUs.
-* Amazon EC2 G3 Instances have up to 4 NVIDIA Tesla M60 GPUs.
-
-## Python env
-
-yum search python34
-sudo yum install -y python36-virtualenv
-sudo alternatives --set python /usr/bin/python3.6
-virtualenv-3.6 nmt-keras
-
-# Amazon Linux issues
-
-You may need to run the following:
-```bash
-sudo ln -s /usr/libexec/gcc/x86_64-amazon-linux/4.8.5/cc1plus /usr/local/bin/
-sudo ln -s /usr/lib64/libhunspell-1.2.so /usr/lib64/libhunspell.so
-```
-before running
-```
-sudo pip install hunspell
-```
-
-# Libraries used
-
-## Pyphen
-
-Pyphen is a pure Python module to hyphenate text using included or external Hunspell hyphenation dictionaries.
-
-http://pyphen.org/
-
-
-Check version:
+[Pyphen](http://pyphen.org/) is a pure Python module to hyphenate text using included or external Hunspell hyphenation dictionaries.
 
 ### Graphviz
 
@@ -199,104 +96,79 @@ print(sess.run(hello))
 tf.VERSION
 ```
 
-Schiller [2005] find that in a newspaper corpus [in German?], 5.5% of all tokens and 43% of all types were compounds.
-Anne Schiller. German compound analysis with wfsc. In International Work- shop on Finite-State Methods and Natural Language Processing, pages 239–246. Springer, 2005.
+## Background information
 
-The German word for eye drops is Augentropfen, consisting of Auge (eye), tropfen (drop), and an n in the middle.
+Many of the assumptions of this project for Swedish are similiar to any German to English translation model, 
+since Swedish also heavily uses noun compounding, although Swedish's morphology is much simpler than German. 
 
-in a few languages, such as German, Dutch, Hungarian, Greek, and the Scandinavian languages the resulting words, or compounds, are written as a single word without any special characters or whitespace in-between.
-The most frequent use of compounding by far [Baroni et al., 2002] is com- pounds consisting of two nouns, but adjectives and verbs form compounds as well.
+Schiller [2005] find that in a newspaper corpus in German, 5.5% of all tokens and 43% of all types were compounds.
+Anne Schiller.  For example, the German word for eye drops is _Augentropfen_, consisting of Auge (eye), tropfen (drop), and an n in the middle.  A _Schulbuch_ (school book) consists of _Schule_ (school) and _Buch_ (book), but the final e of Schule is removed when using it as the first part of a compound.
 
-!!! A Schulbuch (school book) consists of Schule (school) and Buch (book), but the final e of Schule is removed when using it as the first part of a compound.
 
-Koehn and Knight [2002] learn splitting rules from both monolingual as well as parallel corpora. They generate all possible splits of a given word, and take the one that maximizes the geometric mean of the word frequencies of its parts, although they find that this process often leads to both oversplitting words into more common parts (e.g. Freitag (friday) into frei (free) and tag (day)), as well as not splitting some words that should be split, because the compound is more frequent than the geometric mean of the frequencies of its parts.
+In a few languages, such as German, Dutch, Hungarian, Greek, and the Scandinavian languages the resulting words, or compounds, are written as a single word without any special characters or whitespace in between.
+The most frequent use of compounding by far [Baroni et al., 2002] is compounds consisting of two nouns, but adjectives and verbs form compounds as well.
 
-Soricut and Och [2015] use vector representations of words to uncover morpho- logical processes in an unsupervised manner. Their method is language-agnostic, and can be applied to rare words or out-of-vocabulary tokens (OOVs).
-Morphological transformations (e.g. rained = rain + ed) are learned from −−→ −−−→ the word vectors themselves, by observing that, for instance, rain is to rained
+
+[Koehn and Knight, 2003](http://www.aclweb.org/anthology/E03-1076) learn splitting rules from both monolingual as well as parallel corpora. They generate all possible splits of a given word, and take the one that maximizes the geometric mean of the word frequencies of its parts, although they find that this process often leads to both oversplitting words into more common parts (e.g. _Freitag_ (friday) into frei (free) and tag (day)), as well as not splitting some words that should be split, because the compound is more frequent than the geometric mean of the frequencies of its parts.
+
+[Soricut and Och, 2015](http://jrmeyer.github.io/misc/2016/01/21/Soricut-and-Och-2015.html) use vector representations of words to uncover morpho- logical processes in an unsupervised manner. Their method is language-agnostic, and can be applied to rare words or out-of-vocabulary tokens (OOVs). Morphological transformations (e.g. rained = rain + ed) are learned from the word vectors themselves.
  
-# Corpora
- 
- The EMEA corpus [Tiedemann, 2009] is a parallel corpus based on documents by the European Medicines Agency3. 
- 
-as walk is to walked.
-
-They find that the ASV toolbox [Biemann et al., 2008] delivers the best results.
-
-# Work
-
-Started with https://machinelearningmastery.com/develop-neural-machine-translation-system-keras/
 
 # Problems
 
-preserve punctuation, e.g. commas will change semantics aand exclamation the emphasis
+Much of the example code online uses over-simplication to achieve any useful results. This often involves lower-casing all text, 
+removing punctuation and accents etc. For this project I wanted to see what was possible with commodity GPUs while preserving punctuation and case.
 
-preserve capitalization (> word space) but not for the first word
-
-
-# Ideas for tokenization
-
-* Insert a pre-token to denote context, H for heading, W for written sentence, S for spoken sentence, L for label (like a button)?
-(or is having punctuation at the end enough?)
-
-Deal with contractions:
-https://github.com/kootenpv/contractions
-
-* Lowercase first word in sentence IF it's not a proper noun (but how)
-
-1. sub-words (tokenize plural suffixes, compound words) + Preserve spaces  -- useful for German, Swedish, Finnish?  and for small sets
-
-- will reduce word count? (need to confirm)
-
-syllables: https://gist.github.com/bradmerlin/5693904 (English specific)
-naive: split after vowel (or multiple vowels) - for languages without vowels (Arabic?, Chinese) just split after each characters
-Masters thesis by Jonathan Oberl̈ander "Splitting Word Compounds"
-
-2. chunk noun phrases (but will actually INCREASE word space?)
-https://datascience.stackexchange.com/questions/17294/nlp-what-are-some-popular-packages-for-multi-word-tokenization
-OR
-https://github.com/travisbrady/word2phrase (python port)
-
-3. replace Proper Nouns with placeholders: Name.M, Name.F, Name.Place, Name.Org etc. again to reduce word space
-
-4. add POS-tags to each word before training and encoding/decoding and then remove at the end (larger word space, but less training epochs??)
-     e.g. loved.V, love.N  etc.
-     what about ['he', 'PRP', 'loved', 'V', 'with', 'P', 'love', 'N'...] ... or with that make it worse
-     what about ['he', 'PRP', 'love', 'V.Past', 'with', 'P', 'love', 'N'...] (might be very useful to reduce word space for inflected languages like German, Finnish, Icelandic)
-     See https://stackoverflow.com/questions/25534214/nltk-wordnet-lemmatizer-shouldnt-it-lemmatize-all-inflections-of-a-word
-5. unsupervised sub-word tokenizer with something like https://github.com/google/sentencepiece to create a fixed word space (vocab size) using sub-words
-
-Other direction
-
-## Suffixes
-We extract a list of suffixes for each language from Wiktionary (a sister project of Wikipedia):
-We simply take all page titles in the Category:language prefixes and Category:language suffixes6 and remove the dash at the beginning of each page title.
+I find this important since (for example) commas will change semantics and exclamation the emphasis. 
+And obviously capitalization normally marks proper nouns. Therefore, part of the preparation phase is to normalize the input, and only lowercase the first word in a sentece if it is _not_ a proper noun. 
+This reduces the word space since in principle any word would appear twice in the training set: once in the middle of the sentence, e.g. _eating_ in "I like eating", vs. _Eating_ in "Eating is a necessity". 
+This could increase the model complexity and required training by a power of 2. 
 
 
-## Splitting
+## Tokenization
 
-Language
-German
-s e en nen ens es ns er
-Hemdsa ̈rmel Hundehu ̈tte Strahlentherapie Lehrerinnenausbildung Herzenswunsch Haaresbreite Willensbildung Schilderwald
+This project contains several tokenizer options in `tokenizers.py`:
 
-Swedish
-s
-utg ̊angsdatum
-
-Hungarian
-o ́  o ̋ ba  ́ıt ̋o es s i a
-old ́oszer gyu ̋jto ̋doboz forgalombahozatali  ́edes ́ıto ̋szerk ́ent k ́ekesbarna szu ̈rk ́esbarna  ́ızu ̈letifa ́jdalom koraszu ̈l ̈ott
-    
-
-# TODO:
-https://github.com/lvapeab/nmt-keras
+|Tokenizer class | Description|
+|-----------|---------------------|
+|`SimpleLines`| Tokenize on spaces and punctuation, and keep _punctuation_ but _not_ spaces  | 
+|`Hyphenate`| Use a [hypenate library](https://bitbucket.org/fhaxbox66/pyhyphen) to break do `SimpleLines` then break down longer words into sub-parts to reduce the dimensionality |
+|`Word2Phrase`| Tokenize as above, but combine popular phrases into a single token, e.g. "good-bye" and "Eiffel Tower" will be single tokens.  |
+|`ReplaceProper`| Tokenize, but replace proper nouns with a placeholder so we don't pollute the model with possibly unlimited [named entities](https://en.wikipedia.org/wiki/Named-entity_recognition).  |
+|`PosTag`| Tokenize as above, but run a [part-of-speech tagger](https://en.wikipedia.org/wiki/Part-of-speech_tagging) on each sentence. This will result in token like "duck.VF" and "duck.NN" for verbs and nouns.    |
+|`LetterByLetter`| Tokenize the sentence into individual words, preserving all spaces and punctuation. This gives a very small input space but should be possible for an  attention-based model.  |
 
 
-Useful tools
-https://bitbucket.org/fhaxbox66/pyhyphen
-https://cran.r-project.org/web/packages/hunspell/vignettes/intro.html
+# Acknowledgements
 
-# Papers
+- Initial code was from https://machinelearningmastery.com/develop-neural-machine-translation-system-keras/
 
-Parallel Corpora, Parallel Worlds: Selected Papers from a Symposium on Parallel and Comparable Corpora at Uppsala University, Sweden, 22-23 April, 1999
-https://books.google.de/books?id=-XCX7SRubY4C&dq=swedish+english+sentence+pairs&source=gbs_navlinks_s
+- [Parallel Corpora, Parallel Worlds: Selected Papers from a Symposium on Parallel and Comparable Corpora](https://books.google.de/books?id=-XCX7SRubY4C&dq=swedish+english+sentence+pairs&source=gbs_navlinks_s) at Uppsala University, Sweden, 22-23 April, 1999
+
+- Anne Schiller. 2005. German compound analysis with wfsc. In International Workshop on Finite-State Methods and Natural Language Processing, pages 239–246. Springer.
+
+# Future work
+
+The results will probably be better with training taken from the larger Europarl, Wikipedia or GlobalVoices corpora:
+
+- [Europarl](http://opus.nlpl.eu/download.php?f=Europarl/en-sv.tmx.gz)
+- [Wikipedia](http://opus.nlpl.eu/download.php?f=Wikipedia/sv-en.txt.zip)
+- [Global Voices](http://opus.nlpl.eu/download.php?f=GlobalVoices/en-sv.tmx.gz)
+- [EMEA corpus](http://opus.nlpl.eu/EMEA.php) is a parallel corpus based on documents by the European Medicines Agency. 
+ 
+Other avenues to explore:
+
+- Add another tokenization option to denote context. Perhaps add a pre-token such as `H` for heading, `W` for written sentence, `S` for spoken sentence, `L` for label (like a button).
+
+- Deal with contractions. See https://github.com/kootenpv/contractions
+
+- Test an unsupervised sub-word tokenizer with something like [sentencepiece](https://github.com/google/sentencepiece) to create a fixed word space (vocab size) using sub-words
+
+- Test a [syllable-based tokenizer](https://gist.github.com/bradmerlin/5693904) (English specific)
+or a naive language-general approach of splitting after every vowel (or multiple vowels). For languages without vowels (Arabic, Chinese) just split after each character.
+Masters thesis by Jonathan Oberl̈ander "[Splitting Word Compounds](https://core.ac.uk/display/97803281)"
+ 
+- Test a suffix-tokenization method. We could extract a list of suffixes for each language from [Wiktionary](https://www.wiktionary.org) (a sister project of Wikipedia):
+We simply take all page titles in the [Category:language prefixes](https://en.wiktionary.org/wiki/Category:English_prefixes) and [Category:language suffixes](https://en.wiktionary.org/wiki/Category:English_suffixes) and remove the dash at the beginning of each page title.
+
+
