@@ -7,7 +7,7 @@ import string
 
 import pyphen
 
-from helpers import create_tokenizer, max_length, lang2, load_clean_sentences
+from helpers import load_clean_sentences
 from nltk.tokenize import WordPunctTokenizer
 
 import re  # standard regex system

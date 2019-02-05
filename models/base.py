@@ -32,7 +32,8 @@ class BaseModel(object):
         # load datasets
         dataset = load_clean_sentences( 'both')
 
-        print("Prepare english tokenizer")
+        print("## " + tokenizer.__class__.__name__)
+        print("Prepare English tokenizer")
         self.eng_texts = dataset[:, 0] # English
         self.eng_tokenized = tokenizer.tokenize(self.eng_texts, 'en')
         self.eng_tokenizer = create_tokenizer(self.eng_tokenized)
