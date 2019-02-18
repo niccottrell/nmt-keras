@@ -82,6 +82,8 @@ class Simple(BaseModel):
             self.model.load_weights(filename + '.h5')
         else:
             print("No existing model file found: %s" % filename)
+
+        if not os.path.isfile(filename + '.png'):
             # Plot the model and save it too
             plot_model(self.model, to_file=(filename + '.png'), show_shapes=True)
 

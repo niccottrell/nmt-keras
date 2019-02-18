@@ -7,6 +7,7 @@ Based on https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.p
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 from keras.callbacks import ModelCheckpoint
+from keras.utils import plot_model
 
 from config import epochs_default
 from models.base import BaseModel
@@ -119,6 +120,10 @@ class Let2Let(BaseModel):
         if  os.path.isfile(filename):
             # Load the previous model (layers and weights but NO STATE)
             self.model.load_weights(filename)
+
+        if not os.path.isfile(filename + '.png'):
+            # Plot the model and save it too
+            plot_model(self.model, to_file=(filename + '.png'), show_shapes=True)
 
         if epochs > 0:
             # Prepare checkpoints
