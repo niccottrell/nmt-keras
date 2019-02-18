@@ -10,8 +10,8 @@ from numpy import genfromtxt
 # history = model.fit(X, Y, validation_split=0.33, epochs=150, batch_size=10, verbose=0)
 from train import models, tokenizers, optimizer_opts, version
 
-def plot_trainings(model_filter=None, token_filter = None, opt_filter = None):
 
+def plot_trainings(model_filter=None, token_filter=None, opt_filter=None):
     # record all the models found
     entries = []
 
@@ -23,43 +23,48 @@ def plot_trainings(model_filter=None, token_filter = None, opt_filter = None):
                     for opt_id, optimizer in optimizer_opts.items():
                         if opt_filter is None or opt_filter == opt_id:
                             # save each one
-                            filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
+                            label = model_name + '_' + token_id + '_' + opt_id
+                            filename = label + '_' + version
                             try:
                                 history = genfromtxt('checkpoints/' + filename + '.csv', delimiter=',')
-                                entries.append(filename)
+                                entries.append(label)
                                 plt.plot(history[:, 2])
                                 print("Plotted: " + filename)
                             except:
                                 # No model trained yet
                                 print('No model logs for: ' + filename)
 
-    # summarize history for loss
-    plt.title('model loss')
-    plt.ylabel('val_loss')
-    plt.xlabel('epoch')
-    plt.legend(entries, loc='upper right')
-    # plt.show()
-    # plt.ticklabel_formpltat(style='plain', axis='x', useOffset=False)
-    # plt.axis([0, 1,  0, 1])
-    plt.ylim(bottom=0, top=1)
+    if not entries:
+        print("No matching data for filter %s, %s, %s" % (model_filter, token_filter, opt_filter))
+    else:
+        # summarize history for loss
+        plt.title('model loss')
+        plt.ylabel('val_loss')
+        plt.xlabel('epoch')
+        plt.legend(entries, loc='upper right')
+        # plt.show()
+        # plt.ticklabel_formpltat(style='plain', axis='x', useOffset=False)
+        # plt.axis([0, 1,  0, 1])
+        plt.ylim(bottom=0, top=1)
 
-    file_out = "plots/training_loss"
-    if model_filter is not None:
-        file_out += '_' + model_filter
-    if token_filter is not None:
-        file_out += '_' + token_filter
-    if opt_filter is not None:
-        file_out += '_' + opt_filter
-    plt.savefig(file_out + '.png')
-    print("Wrote plot to " + file_out)
+        file_out = "plots/training_loss"
+        if model_filter is not None:
+            file_out += '_' + model_filter
+        if token_filter is not None:
+            file_out += '_' + token_filter
+        if opt_filter is not None:
+            file_out += '_' + opt_filter
+        plt.savefig(file_out + '.png')
+        print("Wrote plot to " + file_out)
 
 
 def plot_trainings_all():
-    for model_name in (list(models.keys()) + ['']):
-        for token_id in (list(tokenizers.keys()) + ['']):
-            for opt_id in (list(optimizer_opts.keys()) + ['']):
-                plot_trainings(model_name if model_name is not '' else None,
-                        token_id if token_id is not '' else None,
-                               opt_id if opt_id is not '' else None)
+    for model_name in (list(models.keys()) + [None]):
+        for token_id in (list(tokenizers.keys()) + [None]):
+            for opt_id in (list(optimizer_opts.keys()) + [None]):
+                plot_trainings(model_name, token_id, opt_id)
 
-plot_trainings_all()
+
+if __name__ == '__main__':
+    # plot_trainings(None, None, 'sgd2')
+    plot_trainings_all()
