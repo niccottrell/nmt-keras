@@ -1,6 +1,5 @@
 import time
 
-from keras.models import load_model
 from nltk.translate.bleu_score import corpus_bleu
 
 import train
@@ -8,21 +7,21 @@ from helpers import *
 from prepare import n_test
 
 
-def evaluate_model(model_obj, raw_dataset):
+def evaluate_model(model_obj, raw_dataset, verbose=True):
     """
     evaluate the skill of the model
     :param model_obj: models.base.BaseModel the model container
     :param raw_dataset: The validation dataset language pairs prior to tokenizer (i.e. actual strings)
-    :return: BLEU-3 score
+    :return: BLEU-1 score
     """
-    print('About to evaluate test set of size %d' % len(raw_dataset))
+    if verbose: print('About to evaluate test set of size %d' % len(raw_dataset))
     actual, predicted = list(), list()
     for i, pair in enumerate(raw_dataset):
         # translate encoded source text
         raw_target, raw_src = pair[0], pair[1]
         translation = model_obj.translate(raw_src)
         if i < 20:
-            print('src=[%s], target=[%s], predicted=[%s]' % (raw_src, raw_target, translation))
+            if verbose: print('src=[%s], target=[%s], predicted=[%s]' % (raw_src, raw_target, translation))
         elif i % 80 == 0:
             print('.', flush=True)
         else:
@@ -31,18 +30,21 @@ def evaluate_model(model_obj, raw_dataset):
         predicted.append(translation.split())
     # calculate BLEU score (at the corpus level)
     bleu1 = corpus_bleu(actual, predicted, weights=(1.0, 0, 0, 0))
-    print('BLEU-1: %f' % bleu1)
-    print('BLEU-2: %f' % corpus_bleu(actual, predicted, weights=(0.5, 0.5, 0, 0)))
-    bleu3 = corpus_bleu(actual, predicted, weights=(0.3, 0.3, 0.3, 0))
-    print('BLEU-3: %f' % bleu3)
-    bleu4 = corpus_bleu(actual, predicted, weights=(0.25, 0.25, 0.25, 0.25))
-    print('BLEU-4: %f' % bleu4)
+    if verbose:
+        bleu2 = corpus_bleu(actual, predicted, weights=(0.5, 0.5, 0, 0))
+        bleu3 = corpus_bleu(actual, predicted, weights=(0.3, 0.3, 0.3, 0))
+        bleu4 = corpus_bleu(actual, predicted, weights=(0.25, 0.25, 0.25, 0.25))
+        print('BLEU-1: %f' % bleu1)
+        print('BLEU-2: %f' % bleu2)
+        print('BLEU-3: %f' % bleu3)
+        print('BLEU-4: %f' % bleu4)
     return bleu1
 
 
-def eval_model(model_obj):
+def eval_model(model_obj, verbose=True):
     """
-    :param model_obj:
+    :param verbose: If true, print example texts etc
+    :param model_obj: The model with weights set
     :type model_obj: models.base.BaseModel
     :return: BLEU-4 score for this model
     :rtype: float
@@ -61,20 +63,21 @@ def eval_model(model_obj):
     # trainX = encode_sequences(other_tokenizer, tokenizer_func(train[:, 1], lang2), pad_length)
     # testX = encode_sequences(other_tokenizer, tokenizer_func(test[:, 1], lang2), pad_length)
     # load model
-    model = load_model('checkpoints/' + model_obj.name + '.h5')
-    print(model.summary())
+    # model = load_model('checkpoints/' + model_obj.name + '.h5')
+    # print(model.summary())
     # test on some training sequences
     # print('Evaluating training set: train=%s' % (str(train)))
     # evaluate_model(model_obj, train)
     # test on some test sequences
-    print('Evaluating testing set: test=%s' % (str(test)))
-    test_bleu = evaluate_model(model_obj, test)
+    # print('Evaluating testing set: test=%s' % (str(test)))
+    test_bleu = evaluate_model(model_obj, test, verbose)
     return test_bleu
 
 
 def evaluate_all(model_filter=None, token_filter=None, opt_filter=None):
     summary = {}
     time_taken = {}
+    test = load_clean_sentences('test')
     for model_name, model_class in train.models.items():
         if model_filter is None or model_filter == model_name:
             for token_id, tokenizer in train.tokenizers.items():
@@ -86,10 +89,10 @@ def evaluate_all(model_filter=None, token_filter=None, opt_filter=None):
                                 filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
                                 # prepare the attention decoder model (with a hack)
                                 model_obj = model_class(filename, tokenizer, optimizer)
-                                model_obj.train_save(epochs=0)
+                                model_obj.train_save(epochs=0)  # load pre-trained weights
                                 # evaluate each model (and time it)
                                 start = time.clock()
-                                test_bleu = eval_model(model_obj)
+                                test_bleu = evaluate_model(model_obj, test, False)
                                 summary[filename] = test_bleu
                                 elapsed = time.clock() - start
                                 time_taken[filename] = elapsed
@@ -102,5 +105,6 @@ def evaluate_all(model_filter=None, token_filter=None, opt_filter=None):
         print('%s=%f (took %d s per sentence)' % (model_name, score, total_time/n_test))
     return summary
 
+
 if __name__ == '__main__':
-    evaluate_all()
+    evaluate_all(model_filter='att')
