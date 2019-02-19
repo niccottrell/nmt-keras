@@ -10,6 +10,10 @@ from numpy import genfromtxt
 # history = model.fit(X, Y, validation_split=0.33, epochs=150, batch_size=10, verbose=0)
 from train import models, tokenizers, optimizer_opts, version
 
+line_styles = {'simple': ':',
+               'att': '-',
+               'attdropout': '-.',
+               'att512': '--'}
 
 def plot_trainings(model_filter=None, token_filter=None, opt_filter=None):
     # record all the models found
@@ -28,7 +32,7 @@ def plot_trainings(model_filter=None, token_filter=None, opt_filter=None):
                             try:
                                 history = genfromtxt('checkpoints/' + filename + '.csv', delimiter=',')
                                 entries.append(label)
-                                plt.plot(history[:, 2])
+                                plt.plot(history[:, 2], linestyle=line_styles[model_name])
                                 print("Plotted: " + filename)
                             except:
                                 # No model trained yet
