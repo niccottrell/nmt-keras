@@ -195,7 +195,7 @@ class Let2Let(BaseModel):
             [decoder_outputs] + decoder_states)
         return (encoder_model, decoder_model)
 
-    def translate(self, input_text):
+    def translate(self, input_text, verbose=True):
 
         encoder_input_data = np.zeros(
             (1, self.max_encoder_seq_length, self.num_encoder_tokens),

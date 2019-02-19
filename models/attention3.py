@@ -99,6 +99,9 @@ class Attention3(BaseModel):
 
         self.model = self.define_model()
 
+        print("\n###\nAbout to train model %s with tokenizer %s and optimizer %s\n###\n\n"
+              % (__name__, self.tokenizer.__class__.__name__, self.optimizer))
+
         filename = 'checkpoints/' + self.name
 
         if os.path.isfile(filename + '.h5'):
@@ -192,7 +195,7 @@ class Attention3(BaseModel):
 
         return self.encoder_model, self.decoder_model
 
-    def translate(self, input_text):
+    def translate(self, input_text, verbose=True):
 
         # tokenize the input sentence
         tokens = self.tokenizer.tokenize([input_text], lang2)

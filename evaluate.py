@@ -10,6 +10,7 @@ from prepare import n_test
 def evaluate_model(model_obj, raw_dataset, verbose=True):
     """
     evaluate the skill of the model
+    :param verbose: if true, print out more debug information
     :param model_obj: models.base.BaseModel the model container
     :param raw_dataset: The validation dataset language pairs prior to tokenizer (i.e. actual strings)
     :return: BLEU-1 score
@@ -19,7 +20,7 @@ def evaluate_model(model_obj, raw_dataset, verbose=True):
     for i, pair in enumerate(raw_dataset):
         # translate encoded source text
         raw_target, raw_src = pair[0], pair[1]
-        translation = model_obj.translate(raw_src)
+        translation = model_obj.translate(raw_src, verbose)
         if i < 20:
             if verbose: print('src=[%s], target=[%s], predicted=[%s]' % (raw_src, raw_target, translation))
         elif i % 80 == 0:

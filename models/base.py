@@ -59,13 +59,13 @@ class BaseModel(object):
     def __str__(self):
         return "Name: %s" % (self.name)
 
-    def translate(self, source):
+    def translate(self, source, verbose=True):
         """
         :param source: the input natural language
         :type source: string
         :return: string the most likely translation as a string
         """
-        return self.predict_sequence(source)
+        return self.predict_sequence(source, verbose)
 
     @abc.abstractmethod
     def train_save(self, epochs=epochs_default):
@@ -75,7 +75,7 @@ class BaseModel(object):
         """
         return
 
-    def predict_sequence(self, source):
+    def predict_sequence(self, source, verbose=True):
         """
         generate target given source sequence (for all predictions)
         :type source: The input data in Swedish
@@ -96,7 +96,7 @@ class BaseModel(object):
                     break
                 target.append(word)
             translations.append(self.tokenizer.join(target, 'en'))
-        print("Candidates=", translations)
+        if verbose: print("Candidates=", translations)
         return translations[0]
 
     def get_checkpoint(self, filename):
