@@ -2,17 +2,19 @@
 This module trains a model and stores it in a file
 """
 import tensorflow as tf
+from keras import optimizers
+
 from helpers import *
 
-from models import attention3, simple
+from models import attention3, simple, let2let
 from tokenizers import SimpleLines, Word2Phrase, ReplaceProper, PosTag, LetterByLetter, Hyphenate
 
 print("VERSION", tf.Session(config=tf.ConfigProto(log_device_placement=True)))
 
 models = {
- #'simple': simple.Simple,
+    'simple': simple.Simple,
     # 'let2let': let2let.Let2Let,
-   # 'att3': attention3.Attention3
+    'att': attention3.Attention3,
     'att512': attention3.Attention512,
     'attdropout': attention3.AttentionWithDropout
 }
@@ -28,28 +30,37 @@ tokenizers = {
 
 # key becomes part of the model name, the value is passed in the optimizer= parameter
 optimizer_opts = {
-    # 'sgd': 'sgd',  # default parameters (reported to be more 'stable' than adam)
+    'sgd': 'sgd',  # default parameters (reported to be more 'stable' than adam)
+    'sgd2': optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True),  # small decay
     'rmsprop': 'rmsprop',  # default lr=0.001
-    # 'rmsprop2': optimizers.RMSprop(lr=0.01),  # same as previous but with 10x higher learning rate
+    'rmsprop2': optimizers.RMSprop(lr=0.01),  # same as previous but with 10x higher learning rate
+    'rmsprop3': optimizers.RMSprop(lr=0.01, decay=0.00001),  # same as previous but with decay
     'adam': 'adam'
 }
 
 
-def train_all():
+def train_all(model_filter=None, token_filter=None, opt_filter=None):
     """Train the models and tokenizer permutations"""
+    log = []
     for model_name, model_class in models.items():
-        for token_id, tokenizer in tokenizers.items():
-            for opt_id, optimizer in optimizer_opts.items():
-                # save each one
-                filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
-                try:
-                    print("About to train %s" % filename)
-                    model_obj = model_class(filename, tokenizer, optimizer)
-                    model_obj.train_save()
-                except:
-                    print("Error training model: " + filename)
-                    traceback.print_exc()
-                    pass
+        if model_filter is None or model_filter == model_name:
+            for token_id, tokenizer in tokenizers.items():
+                if token_filter is None or token_filter == token_id:
+                    for opt_id, optimizer in optimizer_opts.items():
+                        if opt_filter is None or opt_filter == opt_id:
+                            # save each one
+                            filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
+                            try:
+                                print("About to train %s" % filename)
+                                model_obj = model_class(filename, tokenizer, optimizer)
+                                model_obj.train_save()
+                                log.append(filename + " OK")
+                            except:
+                                print("Error training model: " + filename)
+                                traceback.print_exc()
+                                log.append(filename + " Error")
+                                pass
+    print("Training complete: %s" % "\n".join(log))
 
 
 def summarize_tokenizers():
@@ -90,4 +101,6 @@ if __name__ == '__main__':
     # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True' # or `pip install nomkl`
     # summarize_tokenizers()
     # Start the training
-    train_all()
+    # train_all(model_filter='attdropout')
+    # train_all(opt_filter='sgd2')
+    train_all(model_filter='attdropout', opt_filter='rmsprop3')

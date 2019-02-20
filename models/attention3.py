@@ -5,7 +5,7 @@ Fork of let2let.py
 
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense, Dropout
-from keras.callbacks import ModelCheckpoint, CSVLogger
+from keras.callbacks import CSVLogger, EarlyStopping
 from keras.utils import plot_model
 
 from config import epochs_default
@@ -119,17 +119,16 @@ class Attention3(BaseModel):
             # Prepare checkpoints
             checkpoint = self.get_checkpoint(filename + '.h5')
             logger = CSVLogger(filename + '.csv', separator=',', append=True)
+            earlyStopping = EarlyStopping() # stop training if things are not improving
             # Run training
             print("About to fit with batch_size=%d" % self.batch_size)
             history = self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
                                      batch_size=self.batch_size,
                                      epochs=epochs,
                                      validation_split=0.2,
-                                     callbacks=[checkpoint, logger])
-            # Save model
-            self.model.save(filename + '.h5')
-            # Print the training history
-            print(history.history['val_loss'])
+                                     callbacks=[checkpoint, logger, earlyStopping])
+            # Print/save history for later analysis
+            self.post_fit(filename, history)
 
     def define_model(self):
         # Define an input sequence and process it.

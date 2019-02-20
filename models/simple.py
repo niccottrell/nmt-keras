@@ -6,7 +6,7 @@ See: https://chunml.github.io/ChunML.github.io/project/Sequence-To-Sequence/
 """
 import os
 
-from keras.callbacks import ModelCheckpoint, CSVLogger
+from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping
 from keras.layers import Dense, Embedding, LSTM, RepeatVector, TimeDistributed
 from keras.models import Sequential, load_model
 from keras.utils import plot_model
@@ -98,13 +98,16 @@ class Simple(BaseModel):
         print("Fit model")
         checkpoint = self.get_checkpoint(filename + '.h5')
         logger = CSVLogger(filename + '.csv', separator=',', append=True)
+        earlyStopping = EarlyStopping()
         # the model is saved via a callback checkpoint
         X = trainX
         y = trainY
         # where `X` is Training data and `y` are Target values
         # model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[checkpoint], verbose=2)
-        self.model.fit(X, y, validation_data=(testX, testY),
+        history = self.model.fit(X, y, validation_data=(testX, testY),
                        epochs=epochs,
                        batch_size=batch_size,
-                       callbacks=[checkpoint, logger],
+                       callbacks=[checkpoint, logger, earlyStopping],
                        verbose=1)
+        # Print/save history for later analysis
+        self.post_fit(filename, history)

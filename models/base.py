@@ -1,4 +1,5 @@
 import abc
+import json
 
 import numpy as np
 from keras.callbacks import ModelCheckpoint
@@ -118,6 +119,7 @@ class BaseModel(object):
 
     def update(self, dataset):
         """
+        :param dataset: The dataset (sentence pairs in both languages)
         :type dataset: ndarray
         """
         dataset_lang2 = dataset[:, 1]
@@ -126,3 +128,18 @@ class BaseModel(object):
         self.other_length = max_length(other_tokenized)
         # prepare/encode/pad data (pad to length of target language)
         self.pad_length = self.other_length if self.name.startswith('simple') else None
+
+    @staticmethod
+    def post_fit(filename_prefix, history):
+        """
+        Log the training history (particularly acc and val_acc since CSVLogger doesn't seem to save them
+        """
+        # Print the training history
+        print(history.history['val_loss'])
+        # Write this history to a file for later analysis
+        filename = filename_prefix + '-history.json'
+        with open(filename, 'a') as file:
+            file.write(json.dumps(history.history, indent=2))
+            file.close()
+        print("Wrote history to %s" % filename)
+
