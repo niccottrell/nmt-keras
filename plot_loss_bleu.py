@@ -29,6 +29,7 @@ def plot_bleu(model_filter=None, token_filter=None, opt_filter=None):
     xs = []
     ys = []
 
+    plt.figure()  # reset the plot
     with open(file_out + '.csv', mode='w') as csv_file: # overwrite any existing file
         csv_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         # For each, lookup the val_loss and plot them
