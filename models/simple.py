@@ -12,7 +12,7 @@ from keras.models import Sequential, load_model
 from keras.utils import plot_model
 
 from helpers import load_clean_sentences, lang2, encode_sequences, encode_1hot
-from models.base import BaseModel
+from models.base import BaseModel, TimeHistory
 from config import batch_size, epochs_default
 
 
@@ -96,6 +96,7 @@ class Simple(BaseModel):
         checkpoint = self.get_checkpoint(filename + '.h5')
         logger = CSVLogger(filename + '.csv', separator=',', append=True)
         earlyStopping = EarlyStopping()
+        time_callback = TimeHistory()  # record the time taken to train each epoch
         # the model is saved via a callback checkpoint
         X = trainX
         y = trainY
@@ -104,10 +105,10 @@ class Simple(BaseModel):
         history = self.model.fit(X, y, validation_data=(testX, testY),
                        epochs=epochs,
                        batch_size=batch_size,
-                       callbacks=[checkpoint, logger, earlyStopping],
+                       callbacks=[checkpoint, logger, earlyStopping, time_callback],
                        verbose=1)
         # Print/save history for later analysis
-        self.post_fit(filename, history)
+        self.post_fit(filename, history, time_callback)
 
 
 
