@@ -1,8 +1,9 @@
 import abc
 import json
+import time
 
 import numpy as np
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, Callback
 
 from config import epochs_default
 from helpers import word_for_id, lang2, create_tokenizer, max_length, load_clean_sentences
@@ -130,9 +131,10 @@ class BaseModel(object):
         self.pad_length = self.other_length if self.name.startswith('simple') else None
 
     @staticmethod
-    def post_fit(filename_prefix, history):
+    def post_fit(filename_prefix, history, time_callback):
         """
         Log the training history (particularly acc and val_acc since CSVLogger doesn't seem to save them
+        :param time_callback:
         """
         # Print the training history
         print(history.history['val_loss'])
@@ -143,3 +145,16 @@ class BaseModel(object):
             file.close()
         print("Wrote history to %s" % filename)
 
+
+class TimeHistory(Callback):
+    """
+    Record the time taken to train each epoch
+    """
+    def on_train_begin(self, logs={}):
+        self.times = []
+
+    def on_epoch_begin(self, batch, logs={}):
+        self.epoch_time_start = time.time()
+
+    def on_epoch_end(self, batch, logs={}):
+        self.times.append(time.time() - self.epoch_time_start)

@@ -9,7 +9,7 @@ from keras.callbacks import CSVLogger, EarlyStopping
 from keras.utils import plot_model
 
 from config import epochs_default
-from models.base import BaseModel
+from models.base import BaseModel, TimeHistory
 
 import numpy as np
 from helpers import *
@@ -120,15 +120,16 @@ class Attention3(BaseModel):
             checkpoint = self.get_checkpoint(filename + '.h5')
             logger = CSVLogger(filename + '.csv', separator=',', append=True)
             earlyStopping = EarlyStopping() # stop training if things are not improving
+            time_callback = TimeHistory()  # record the time taken to train each epoch
             # Run training
             print("About to fit with batch_size=%d" % self.batch_size)
             history = self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
                                      batch_size=self.batch_size,
                                      epochs=epochs,
                                      validation_split=0.2,
-                                     callbacks=[checkpoint, logger, earlyStopping])
+                                     callbacks=[checkpoint, logger, earlyStopping, time_callback])
             # Print/save history for later analysis
-            self.post_fit(filename, history)
+            self.post_fit(filename, history, time_callback)
 
     def define_model(self):
         # Define an input sequence and process it.

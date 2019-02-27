@@ -7,12 +7,12 @@ See: https://chunml.github.io/ChunML.github.io/project/Sequence-To-Sequence/
 import os
 
 from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping
-from keras.layers import Dense, Embedding, LSTM, RepeatVector, TimeDistributed
+from keras.layers import Dense, Embedding, LSTM, RepeatVector, TimeDistributed, Activation
 from keras.models import Sequential, load_model
 from keras.utils import plot_model
 
 from helpers import load_clean_sentences, lang2, encode_sequences, encode_1hot
-from models.base import BaseModel
+from models.base import BaseModel, TimeHistory
 from config import batch_size, epochs_default
 
 
@@ -31,15 +31,12 @@ class Simple(BaseModel):
         :param :n_units: dimensionality of the LSTM layers (more dimensions => more accurate meaning => longer to train => better. After 2k not much improvement) Also often labelled latent_dim ?
         :return: A Keras model instance.
         """
-        hidden_size = n_units  # TODO: Does this need to be the same value??
         model = Sequential()
         model.add(Embedding(src_vocab, n_units, input_length=src_timesteps, mask_zero=True))  # builds "thought" mappings
-        model.add(LSTM(hidden_size))  # RNN Cell (encoder?) return_state=False by default
+        model.add(LSTM(n_units))  # RNN Cell (encoder?) return_state=False by default
         model.add(RepeatVector(target_timesteps))  # Direction of Encoder Input = forward?
-        # for _ in range(num_layers): can add multiple layers here:
-        model.add(LSTM(hidden_size, return_sequences=True))  # RNN Cell (decoder?)
+        model.add(LSTM(n_units, return_sequences=True))  # RNN Cell (decoder?)
         model.add(TimeDistributed(Dense(target_vocab, activation='softmax')))
-        # todo: Activation layer?
         return model
 
     def get_x(self, source):
@@ -99,6 +96,7 @@ class Simple(BaseModel):
         checkpoint = self.get_checkpoint(filename + '.h5')
         logger = CSVLogger(filename + '.csv', separator=',', append=True)
         earlyStopping = EarlyStopping()
+        time_callback = TimeHistory()  # record the time taken to train each epoch
         # the model is saved via a callback checkpoint
         X = trainX
         y = trainY
@@ -107,7 +105,35 @@ class Simple(BaseModel):
         history = self.model.fit(X, y, validation_data=(testX, testY),
                        epochs=epochs,
                        batch_size=batch_size,
-                       callbacks=[checkpoint, logger, earlyStopping],
+                       callbacks=[checkpoint, logger, earlyStopping, time_callback],
                        verbose=1)
         # Print/save history for later analysis
-        self.post_fit(filename, history)
+        self.post_fit(filename, history, time_callback)
+
+
+
+class Simple2(Simple):
+    """
+    An extension of the simple model with multiple LSTM decoder layers and an Activation layer
+    """
+
+    def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, n_units=100):
+        """
+         define a simple "naive?" NMT model using LSTM as the RNN Cell Type with no attention mechanism
+         with fixed/max sentence length
+        :param :src_timesteps: max length of src language sentences
+        :param :target_timesteps: max length of targets language sentences
+        :param :n_units: dimensionality of the LSTM layers (more dimensions => more accurate meaning => longer to train => better. After 2k not much improvement) Also often labelled latent_dim ?
+        :return: A Keras model instance.
+        """
+        hidden_size = n_units
+        num_layers = 4
+        model = Sequential()
+        model.add(Embedding(src_vocab, n_units, input_length=src_timesteps, mask_zero=True))  # builds "thought" mappings
+        model.add(LSTM(hidden_size))  # RNN Cell (encoder?) return_state=False by default
+        model.add(RepeatVector(target_timesteps))  # Direction of Encoder Input = forward?
+        for _ in range(num_layers):
+           model.add(LSTM(hidden_size, return_sequences=True))  # RNN Cell (decoder?)
+        model.add(TimeDistributed(Dense(target_vocab, activation='softmax')))
+        model.add(Activation('softmax'))
+        return model

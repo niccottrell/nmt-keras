@@ -13,6 +13,7 @@ print("VERSION", tf.Session(config=tf.ConfigProto(log_device_placement=True)))
 
 models = {
     'simple': simple.Simple,
+    'simple2': simple.Simple2,
     # 'let2let': let2let.Let2Let,
     'att': attention3.Attention3,
     'att512': attention3.Attention512,
