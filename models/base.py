@@ -144,6 +144,12 @@ class BaseModel(object):
             file.write(json.dumps(history.history, indent=2))
             file.close()
         print("Wrote history to %s" % filename)
+        # Record time taken
+        filename = filename_prefix + '-time.txt'
+        with open(filename, 'a') as file:
+            file.writelines("%d\n" % item for item in time_callback.times)
+            file.close()
+        print("Wrote times to %s" % filename)
 
 
 class TimeHistory(Callback):
