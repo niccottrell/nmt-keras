@@ -17,7 +17,8 @@ models = {
     # 'let2let': let2let.Let2Let,
     'att': attention3.Attention3,
     'att512': attention3.Attention512,
-    'attdropout': attention3.AttentionWithDropout
+    'attdropout': attention3.AttentionWithDropout,
+    'attbidi': attention3.AttentionBidi
 }
 
 tokenizers = {

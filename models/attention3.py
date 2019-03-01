@@ -4,7 +4,7 @@ Fork of let2let.py
 """
 
 from keras.models import Model
-from keras.layers import Input, LSTM, Dense, Dropout
+from keras.layers import Input, LSTM, Dense, Dropout, Bidirectional
 from keras.callbacks import CSVLogger, EarlyStopping
 from keras.utils import plot_model
 
@@ -32,15 +32,16 @@ class Attention3(BaseModel):
     encoder_model = None
     decoder_model = None
 
-    def __init__(self, name, tokenizer, optimizer, include_dropout=False, latent_dim=256):
+    def __init__(self, name, tokenizer, optimizer, include_dropout=False, latent_dim=256, bidi=False):
         BaseModel.__init__(self, name, tokenizer, optimizer)
 
-        # Collection all tokens across all input lines
         self.include_dropout = include_dropout
         self.latent_dim = latent_dim
+        self.bidi = bidi  # If true, use a Bidirectional wrapper around the encoder LSTM
         self.other_tokens = set()  # input
         self.eng_tokens = {self.CH_START, self.CH_END}  # target
 
+        # Collection all tokens across all input lines
         for idx, line in enumerate(self.eng_texts):
             self.eng_texts[idx] = self.CH_START + self.eng_texts[idx] + self.CH_END
             self.eng_tokenized[idx] = [self.CH_START] + self.eng_tokenized[idx] + [self.CH_END]
@@ -119,7 +120,7 @@ class Attention3(BaseModel):
             # Prepare checkpoints
             checkpoint = self.get_checkpoint(filename + '.h5')
             logger = CSVLogger(filename + '.csv', separator=',', append=True)
-            earlyStopping = EarlyStopping() # stop training if things are not improving
+            earlyStopping = EarlyStopping()  # stop training if things are not improving
             time_callback = TimeHistory()  # record the time taken to train each epoch
             # Run training
             print("About to fit with batch_size=%d" % self.batch_size)
@@ -135,6 +136,8 @@ class Attention3(BaseModel):
         # Define an input sequence and process it.
         encoder_inputs = Input(shape=(None, self.num_encoder_tokens))
         encoder_lstm = LSTM(self.latent_dim, return_state=True)
+        if self.bidi:
+            encoder_lstm = Bidirectional(encoder_lstm)
         encoder_outputs, state_h, state_c = encoder_lstm(encoder_inputs)
         # We discard `encoder_outputs` and only keep the states.
         encoder_states = [state_h, state_c]
@@ -284,3 +287,9 @@ class Attention512(Attention3):
 
     def __init__(self, name, tokenizer, optimizer):
         Attention3.__init__(self, name, tokenizer, optimizer, latent_dim=512)
+
+
+class AttentionBidi(Attention3):
+
+    def __init__(self, name, tokenizer, optimizer):
+        Attention3.__init__(self, name, tokenizer, optimizer, bidi=True)
