@@ -26,11 +26,11 @@ def times_per_model():
                     row.append(int(round(mean_times)))
                 except:
                     # No model trained yet
-                    print('No model logs for: ' + filename)
+                    # print('No model logs for: ' + filename)
                     row.append("")
             table.append(row)
         # Print this model's data
-        print("\n\nMean Training Times - Model %s:\n" % model_name)
+        print("\n\n### Mean Training T imes - Model %s:\n" % model_name)
         print(tabulate(table, headers, tablefmt="github"))
 
 
@@ -52,15 +52,15 @@ def times_per_optimizer():
                     row.append(int(round(mean_times)))
                 except:
                     # No model trained yet
-                    print('No model logs for: ' + filename)
+                    # print('No model logs for: ' + filename)
                     row.append("")
             table.append(row)
         # Print this model's data
-        print("\n\nMean Training Times - Optimizer %s:\n" % opt_id)
+        print("\n\n### Mean Training Times - Optimizer %s:\n" % opt_id)
         print(tabulate(table, headers, tablefmt="github"))
 
 
-def overview_epochs():
+def overview_epochs_per_model():
     for model_name in list(models.keys()):
         headers = [""]
         for token_id in list(tokenizers.keys()):
@@ -77,17 +77,16 @@ def overview_epochs():
                     row.append(len(history))
                 except:
                     # No model trained yet
-                    print('No model logs for: ' + filename)
+                    # print('No model logs for: ' + filename)
                     row.append("")
             table.append(row)
         # Print this model's data
-        print("\n\nTraining Epochs - Model %s:\n" % model_name)
+        print("\n\n### Training Epochs - Model %s:\n" % model_name)
         print(tabulate(table, headers, tablefmt="github"))
 
 
 if __name__ == '__main__':
-    # Generate a table per model
-    overview_epochs()
+    overview_epochs_per_model()
     times_per_model()
     times_per_optimizer()
 
