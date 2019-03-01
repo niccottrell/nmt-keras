@@ -15,7 +15,7 @@ line_styles = {'simple': ':',
                'attdropout': '-.',
                'att512': '--'}
 
-def plot_trainings(model_filter=None, token_filter=None, opt_filter=None):
+def plot_trainings(model_filter=None, token_filter=None, opt_filter=None, version=version):
     # record all the models found
     entries = []
 
@@ -49,7 +49,7 @@ def plot_trainings(model_filter=None, token_filter=None, opt_filter=None):
         # plt.show()
         # plt.ticklabel_formpltat(style='plain', axis='x', useOffset=False)
         # plt.axis([0, 1,  0, 1])
-        plt.ylim(bottom=0, top=1)
+        plt.ylim(bottom=0)
 
         file_out = "plots/training_loss"
         if model_filter is not None:
@@ -62,13 +62,13 @@ def plot_trainings(model_filter=None, token_filter=None, opt_filter=None):
         print("Wrote plot to " + file_out)
 
 
-def plot_trainings_all():
+def plot_trainings_all(version=version):
     for model_name in (list(models.keys()) + [None]):
         for token_id in (list(tokenizers.keys()) + [None]):
             for opt_id in (list(optimizer_opts.keys()) + [None]):
-                plot_trainings(model_name, token_id, opt_id)
+                plot_trainings(model_name, token_id, opt_id, version)
 
 
 if __name__ == '__main__':
     # plot_trainings(None, None, 'sgd2')
-    plot_trainings_all()
+    plot_trainings_all(version="201808c")
