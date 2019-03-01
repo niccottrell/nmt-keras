@@ -2,7 +2,7 @@
 Fork of let2let.py
 
 """
-
+import numpy
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense, Dropout
 from keras.callbacks import CSVLogger, EarlyStopping
@@ -15,6 +15,8 @@ import numpy as np
 from helpers import *
 import os.path
 
+from tokenizers import SimpleLines
+
 
 class Attention3(BaseModel):
     # We use "tab" as the "start sequence" character
@@ -22,7 +24,7 @@ class Attention3(BaseModel):
     CH_START = '\t'
     CH_END = '\n'
 
-    batch_size = 64  # Batch size for training.
+    batch_size = 32  # Batch size for training.
     latent_dim = None  # Latent dimensionality of the encoding space.
 
     input_token_index = dict()
@@ -32,12 +34,16 @@ class Attention3(BaseModel):
     encoder_model = None
     decoder_model = None
 
-    def __init__(self, name, tokenizer, optimizer, include_dropout=False, latent_dim=256):
+    def __init__(self, name, tokenizer, optimizer, include_dropout=False, latent_dim=256, reverse_order=False):
+        """
+        :param reverse_order: If True, reverse the order of input tokens to ease training
+        """
         BaseModel.__init__(self, name, tokenizer, optimizer)
 
         # Collection all tokens across all input lines
         self.include_dropout = include_dropout
         self.latent_dim = latent_dim
+        self.reverse_order = reverse_order
         self.other_tokens = set()  # input
         self.eng_tokens = {self.CH_START, self.CH_END}  # target
 
@@ -81,6 +87,8 @@ class Attention3(BaseModel):
         for i, (input_text, target_text) in enumerate(zip(self.other_tokenized, self.eng_tokenized)):
             for t, token in enumerate(input_text):
                 self.encoder_input_data[i, t, self.input_token_index[token]] = 1.
+            if reverse_order:
+                self.encoder_input_data = numpy.flip(self.encoder_input_data, 1)
             for t, token in enumerate(target_text):
                 # decoder_target_data is ahead of decoder_input_data by one timestep
                 self.decoder_input_data[i, t, self.target_token_index[token]] = 1.
@@ -274,13 +282,38 @@ class Attention3(BaseModel):
 
 
 class AttentionWithDropout(Attention3):
-
+    """
+    Same as Attention3 except with an additional dropout layer
+    """
     def __init__(self, name, tokenizer, optimizer):
         Attention3.__init__(self, name, tokenizer, optimizer, include_dropout=True)
-        self.batch_size = 12  # Lower batch size since it's more complex
+        self.batch_size = 16  # Lower batch size since it's more complex
 
 
 class Attention512(Attention3):
-
+    """
+    Same as Attention3 except with double the embedding dimensions
+    """
     def __init__(self, name, tokenizer, optimizer):
         Attention3.__init__(self, name, tokenizer, optimizer, latent_dim=512)
+
+
+class AttentionReverse(Attention3):
+    """
+    Same as Attention3 except the source sequence is reversed during training, and the input sentence tokens needs to be
+    reversed also at runtime. This has been shown to ease training and give significantly higher accuracy (Sutskever, 2014)
+    """
+    def __init__(self, name, tokenizer, optimizer):
+        Attention3.__init__(self, name, tokenizer, optimizer, reverse_order=True)
+
+    def decode_sequence(self, input_seq):
+        reversed_seq = numpy.flip(input_seq, 1)  # TODO Check Reverse input
+        print(input_seq)
+        print(reversed_seq)
+        Attention3.decode_sequence(self, reversed_seq)
+
+
+if __name__ == '__main__':
+    filename = 'attrev_a_adam_' + version
+    att = AttentionReverse(filename, SimpleLines(), 'adam')
+    att.quick_test()
