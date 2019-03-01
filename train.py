@@ -3,6 +3,7 @@ This module trains a model and stores it in a file
 """
 import tensorflow as tf
 from keras import optimizers
+from keras.backend.tensorflow_backend import set_session
 
 from helpers import *
 
@@ -17,7 +18,8 @@ models = {
     # 'let2let': let2let.Let2Let,
     'att': attention3.Attention3,
     'att512': attention3.Attention512,
-    'attdropout': attention3.AttentionWithDropout
+    'attdropout': attention3.AttentionWithDropout,
+    'attrev': attention3.AttentionReverse
 }
 
 tokenizers = {
@@ -108,5 +110,8 @@ if __name__ == '__main__':
     # summarize_tokenizers()
     # Start the training
     # train_all(model_filter='attdropout')
+    # train_all(model_filter='att')
+    # train_all(model_filter='att512')
+    train_all(model_filter='attrev')
     # train_all(opt_filter='sgd2')
     train_all(model_filter='attdropout', opt_filter='rmsprop3')
