@@ -100,6 +100,11 @@ def summarize_tokenizers():
 if __name__ == '__main__':
     # Avoid memory errors on Mac
     # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True' # or `pip install nomkl`
+    # Tweak Tensorflow config
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
+    sess = tf.Session(config=config)
+    set_session(sess)  # set this TensorFlow session as the default session for Keras
     # summarize_tokenizers()
     # Start the training
     # train_all(model_filter='attdropout')
