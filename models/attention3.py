@@ -119,7 +119,7 @@ class Attention3(BaseModel):
             # Prepare checkpoints
             checkpoint = self.get_checkpoint(filename + '.h5')
             logger = CSVLogger(filename + '.csv', separator=',', append=True)
-            earlyStopping = EarlyStopping() # stop training if things are not improving
+            earlyStopping = EarlyStopping(patience=2, verbose=1)  # stop training if things are not improving
             time_callback = TimeHistory()  # record the time taken to train each epoch
             # Run training
             print("About to fit with batch_size=%d" % self.batch_size)

@@ -95,7 +95,7 @@ class Simple(BaseModel):
         print("Fit model")
         checkpoint = self.get_checkpoint(filename + '.h5')
         logger = CSVLogger(filename + '.csv', separator=',', append=True)
-        earlyStopping = EarlyStopping()
+        earlyStopping = EarlyStopping(patience=2, verbose=1)
         time_callback = TimeHistory()  # record the time taken to train each epoch
         # the model is saved via a callback checkpoint
         X = trainX
