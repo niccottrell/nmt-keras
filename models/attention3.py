@@ -2,16 +2,15 @@
 Fork of let2let.py
 
 """
-import numpy
 from keras.models import Model
-from keras.layers import Input, LSTM, Dense, Dropout
+from keras.layers import Input, LSTM, Dense, Dropout, Bidirectional
 from keras.callbacks import CSVLogger, EarlyStopping
 from keras.utils import plot_model
 
 from config import epochs_default
 from models.base import BaseModel, TimeHistory
 
-import numpy as np
+import numpy
 from helpers import *
 import os.path
 
@@ -24,7 +23,7 @@ class Attention3(BaseModel):
     CH_START = '\t'
     CH_END = '\n'
 
-    batch_size = 32  # Batch size for training.
+    batch_size = 64  # Batch size for training.
     latent_dim = None  # Latent dimensionality of the encoding space.
 
     input_token_index = dict()
@@ -34,7 +33,7 @@ class Attention3(BaseModel):
     encoder_model = None
     decoder_model = None
 
-    def __init__(self, name, tokenizer, optimizer, include_dropout=False, latent_dim=256, reverse_order=False):
+    def __init__(self, name, tokenizer, optimizer, include_dropout=False, latent_dim=256, reverse_order=False, bidi=False):
         """
         :param reverse_order: If True, reverse the order of input tokens to ease training
         """
@@ -44,9 +43,11 @@ class Attention3(BaseModel):
         self.include_dropout = include_dropout
         self.latent_dim = latent_dim
         self.reverse_order = reverse_order
+        self.bidi = bidi  # If true, use a Bidirectional wrapper around the encoder LSTM
         self.other_tokens = set()  # input
         self.eng_tokens = {self.CH_START, self.CH_END}  # target
 
+        # Collection all tokens across all input lines
         for idx, line in enumerate(self.eng_texts):
             self.eng_texts[idx] = self.CH_START + self.eng_texts[idx] + self.CH_END
             self.eng_tokenized[idx] = [self.CH_START] + self.eng_tokenized[idx] + [self.CH_END]
@@ -73,13 +74,13 @@ class Attention3(BaseModel):
         self.target_token_index = dict(
             [(token, i) for i, token in enumerate(self.eng_tokens)])
 
-        self.encoder_input_data = np.zeros(
+        self.encoder_input_data = numpy.zeros(
             (self.num_samples, self.max_encoder_seq_length, self.num_encoder_tokens),
             dtype='uint8')
-        self.decoder_input_data = np.zeros(
+        self.decoder_input_data = numpy.zeros(
             (self.num_samples, self.max_decoder_seq_length, self.num_decoder_tokens),
             dtype='uint8')
-        self.decoder_target_data = np.zeros(
+        self.decoder_target_data = numpy.zeros(
             (self.num_samples, self.max_decoder_seq_length, self.num_decoder_tokens),
             dtype='uint8')
 
@@ -143,6 +144,8 @@ class Attention3(BaseModel):
         # Define an input sequence and process it.
         encoder_inputs = Input(shape=(None, self.num_encoder_tokens))
         encoder_lstm = LSTM(self.latent_dim, return_state=True)
+        if self.bidi:
+            encoder_lstm = Bidirectional(encoder_lstm)
         encoder_outputs, state_h, state_c = encoder_lstm(encoder_inputs)
         # We discard `encoder_outputs` and only keep the states.
         encoder_states = [state_h, state_c]
@@ -209,7 +212,7 @@ class Attention3(BaseModel):
         tokens = self.tokenizer.tokenize([input_text], lang2)
 
         # Prepare one-hot encoded ndarray like during training
-        encoder_input_data = np.zeros(
+        encoder_input_data = numpy.zeros(
             (1, self.max_encoder_seq_length, self.num_encoder_tokens),
             dtype='float32')
         for t, token in enumerate(tokens[0]):
@@ -235,7 +238,7 @@ class Attention3(BaseModel):
         states_value = encoder_model.predict(input_seq)
 
         # Generate empty target sequence of length 1.
-        target_seq = np.zeros((1, 1, self.num_decoder_tokens))
+        target_seq = numpy.zeros((1, 1, self.num_decoder_tokens))
         # Populate the first character of target sequence with the start character.
         target_seq[0, 0, self.target_token_index[self.CH_START]] = 1.
 
@@ -248,7 +251,7 @@ class Attention3(BaseModel):
             output_tokens, h, c = decoder_model.predict(model_input)
 
             # Sample a token
-            sampled_token_index = np.argmax(output_tokens[0, -1, :])
+            sampled_token_index = numpy.argmax(output_tokens[0, -1, :])
             sampled_token = self.reverse_target_token_index[sampled_token_index]
             decoded_tokens.append(sampled_token)
 
@@ -259,7 +262,7 @@ class Attention3(BaseModel):
                 stop_condition = True
 
             # Update the target sequence (of length 1).
-            target_seq = np.zeros((1, 1, self.num_decoder_tokens))
+            target_seq = numpy.zeros((1, 1, self.num_decoder_tokens))
             target_seq[0, 0, sampled_token_index] = 1.
 
             # Update states
@@ -311,6 +314,12 @@ class AttentionReverse(Attention3):
         print(input_seq)
         print(reversed_seq)
         Attention3.decode_sequence(self, reversed_seq)
+
+
+class AttentionBidi(Attention3):
+
+    def __init__(self, name, tokenizer, optimizer):
+        Attention3.__init__(self, name, tokenizer, optimizer, bidi=True)
 
 
 if __name__ == '__main__':

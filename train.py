@@ -19,7 +19,8 @@ models = {
     'att': attention3.Attention3,
     'att512': attention3.Attention512,
     'attdropout': attention3.AttentionWithDropout,
-    'attrev': attention3.AttentionReverse
+    'attrev': attention3.AttentionReverse,
+    'attbidi': attention3.AttentionBidi
 }
 
 tokenizers = {
