@@ -6,11 +6,11 @@ Based on https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.p
 
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping
 from keras.utils import plot_model
 
 from config import epochs_default
-from models.base import BaseModel
+from models.base import BaseModel, TimeHistory
 
 import numpy as np
 from helpers import *
@@ -127,15 +127,18 @@ class Let2Let(BaseModel):
 
         if epochs > 0:
             # Prepare checkpoints
-            checkpoint = self.get_checkpoint(filename)
+            checkpoint = self.get_checkpoint(filename + '.h5')
+            logger = CSVLogger(filename + '.csv', separator=',', append=True)
+            earlyStopping = EarlyStopping(patience=2, verbose=1)
+            time_callback = TimeHistory()  # record the time taken to train each epoch
             # Run training
-            self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
+            history = self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
                            batch_size=self.batch_size,
                            epochs=epochs,
                            validation_split=0.2,
-                           callbacks=[checkpoint])
+                           callbacks=[checkpoint, logger, earlyStopping, time_callback])
             # Save model
-            self.model.save(filename)
+            self.post_fit(filename, history,  time_callback)
 
     def define_model(self):
         # Define an input sequence and process it.
