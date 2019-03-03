@@ -11,9 +11,12 @@ from numpy import genfromtxt
 from train import models, tokenizers, optimizer_opts, version
 
 line_styles = {'simple': ':',
+               'simple2': '--',
                'att': '-',
                'attdropout': '-.',
-               'att512': '--'}
+               'att512': '--',
+               'attrev': '-',
+               'attbidi': '-.'}
 
 def plot_trainings(model_filter=None, token_filter=None, opt_filter=None, version=version):
     # record all the models found
@@ -30,7 +33,7 @@ def plot_trainings(model_filter=None, token_filter=None, opt_filter=None, versio
                             label = model_name + '_' + token_id + '_' + opt_id
                             filename = label + '_' + version
                             try:
-                                history = genfromtxt('checkpoints/' + filename + '.csv', delimiter=',')
+                                history = genfromtxt('checkpoints/' + filename + '.csv', delimiter=',', skip_header=1)
                                 entries.append(label)
                                 plt.plot(history[:, 2], linestyle=line_styles[model_name])
                                 print("Plotted: " + filename)
@@ -46,9 +49,6 @@ def plot_trainings(model_filter=None, token_filter=None, opt_filter=None, versio
         plt.ylabel('val_loss')
         plt.xlabel('epoch')
         plt.legend(entries, loc='upper right')
-        # plt.show()
-        # plt.ticklabel_formpltat(style='plain', axis='x', useOffset=False)
-        # plt.axis([0, 1,  0, 1])
         plt.ylim(bottom=0)
 
         file_out = "plots/training_loss"
@@ -71,4 +71,4 @@ def plot_trainings_all(version=version):
 
 if __name__ == '__main__':
     # plot_trainings(None, None, 'sgd2')
-    plot_trainings_all(version="201808c")
+    plot_trainings_all()
