@@ -11,11 +11,14 @@ from numpy import genfromtxt
 from train import models, tokenizers, optimizer_opts, version
 
 line_styles = {'simple': ':',
+               'simple2': '--',
                'att': '-',
                'attdropout': '-.',
-               'att512': '--'}
+               'att512': '--',
+               'attrev': '-',
+               'attbidi': '-.'}
 
-def plot_trainings(model_filter=None, token_filter=None, opt_filter=None):
+def plot_trainings(model_filter=None, token_filter=None, opt_filter=None, version=version):
     # record all the models found
     entries = []
 
@@ -30,7 +33,7 @@ def plot_trainings(model_filter=None, token_filter=None, opt_filter=None):
                             label = model_name + '_' + token_id + '_' + opt_id
                             filename = label + '_' + version
                             try:
-                                history = genfromtxt('checkpoints/' + filename + '.csv', delimiter=',')
+                                history = genfromtxt('checkpoints/' + filename + '.csv', delimiter=',', skip_header=1)
                                 entries.append(label)
                                 plt.plot(history[:, 2], linestyle=line_styles[model_name])
                                 print("Plotted: " + filename)
@@ -46,10 +49,7 @@ def plot_trainings(model_filter=None, token_filter=None, opt_filter=None):
         plt.ylabel('val_loss')
         plt.xlabel('epoch')
         plt.legend(entries, loc='upper right')
-        # plt.show()
-        # plt.ticklabel_formpltat(style='plain', axis='x', useOffset=False)
-        # plt.axis([0, 1,  0, 1])
-        plt.ylim(bottom=0, top=1)
+        plt.ylim(bottom=0)
 
         file_out = "plots/training_loss"
         if model_filter is not None:
@@ -62,11 +62,11 @@ def plot_trainings(model_filter=None, token_filter=None, opt_filter=None):
         print("Wrote plot to " + file_out)
 
 
-def plot_trainings_all():
+def plot_trainings_all(version=version):
     for model_name in (list(models.keys()) + [None]):
         for token_id in (list(tokenizers.keys()) + [None]):
             for opt_id in (list(optimizer_opts.keys()) + [None]):
-                plot_trainings(model_name, token_id, opt_id)
+                plot_trainings(model_name, token_id, opt_id, version)
 
 
 if __name__ == '__main__':
