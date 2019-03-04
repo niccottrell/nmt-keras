@@ -5,6 +5,7 @@ import tensorflow as tf
 from keras import optimizers
 from keras.backend.tensorflow_backend import set_session
 
+from config import epochs_default
 from helpers import *
 
 from models import attention3, simple, let2let
@@ -43,21 +44,21 @@ optimizer_opts = {
 }
 
 
-def train_all(model_filter=None, token_filter=None, opt_filter=None):
+def train_all(model_filter=None, token_filter=None, opt_filter=None, epochs=epochs_default):
     """Train the models and tokenizer permutations"""
     log = []
     for model_name, model_class in models.items():
-        if model_filter is None or model_filter == model_name:
+        if matches(model_filter , model_name):
             for token_id, tokenizer in tokenizers.items():
-                if token_filter is None or token_filter == token_id:
+                if matches(token_filter, token_id):
                     for opt_id, optimizer in optimizer_opts.items():
-                        if opt_filter is None or opt_filter == opt_id:
+                        if matches(opt_filter, opt_id):
                             # save each one
                             filename = model_name + '_' + token_id + '_' + opt_id + '_' + version
                             try:
                                 print("About to train %s" % filename)
                                 model_obj = model_class(filename, tokenizer, optimizer)
-                                model_obj.train_save()
+                                model_obj.train_save(epochs=epochs)
                                 log.append(filename + " OK")
                             except:
                                 print("Error training model: " + filename)
@@ -100,10 +101,17 @@ def summarize_tokenizers():
         print('Other Max Length: %d' % other_length)
 
 
+def matches(filter: string, name: string):
+    """
+    :return: True if we should train this component based on the filter
+    """
+    return filter is None or name.startswith(filter)
+
+
 if __name__ == '__main__':
     # Avoid memory errors on Mac
     # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True' # or `pip install nomkl`
-    # Tweak Tensorflow config
+    # Tweak TensorFlow config
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
     sess = tf.Session(config=config)
@@ -115,4 +123,3 @@ if __name__ == '__main__':
     # train_all(model_filter='att512')
     train_all(model_filter='attrev')
     # train_all(opt_filter='sgd2')
-    train_all(model_filter='attdropout', opt_filter='rmsprop3')
