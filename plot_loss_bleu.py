@@ -43,7 +43,7 @@ def plot_bleu(model_filter=None, token_filter=None, opt_filter=None):
                                 label = model_name + '_' + token_id + '_' + opt_id
                                 filename = label + '_' + version
                                 try:
-                                    history = genfromtxt('checkpoints/' + filename + '.csv', delimiter=',')
+                                    history = genfromtxt('checkpoints/' + filename + '.csv', delimiter=',', skip_header=1)
                                     bleu = bleu_scores[filename]
                                     val_loss = history[:, 2][-1]
                                     csv_writer.writerow([filename, bleu, val_loss])
