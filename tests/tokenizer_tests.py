@@ -118,6 +118,11 @@ class TokenizerTests(unittest.TestCase):
         self.assertEqual(['sjuk', 'hus'], hyphenate.tokenize_one('sjukhus', lang='sv'))
         self.assertEqual(['sjuk', 'hus', 'et'], hyphenate.tokenize_one('sjukhuset', lang='sv'))
 
+    def test_hyphenate_sv2(self):
+        self.assertEqual(['gås'], hyphenate.tokenize_one('gås', lang='sv'))
+        self.assertEqual(['smör', 'gås'], hyphenate.tokenize_one('smörgås', lang='sv'))
+        self.assertEqual(['smör', 'gås', 'en'], hyphenate.tokenize_one('smörgåsen', lang='sv'))
+
     def test_hyphenate_lines(self):
         self.assertEqual([['hat']],
                          hyphenate.tokenize(['hat'], lang='en'))
