@@ -51,7 +51,7 @@ class Simple(BaseModel):
         """
         tokenizer = self.tokenizer
         print("\n###\nAbout to train model %s with tokenizer %s and optimizer %s\n###\n\n"
-              % (__name__, tokenizer.__class__.__name__, self.optimizer))
+              % (self.__class__.__name__, tokenizer.__class__.__name__, self.optimizer))
         # load datasets
         train = load_clean_sentences('train')
         test = load_clean_sentences('test')
@@ -115,23 +115,24 @@ class Simple2(Simple):
     An extension of the simple model with multiple LSTM decoder layers and an Activation layer
     """
 
-    def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, n_units=100):
+    # The number of decoder layers to build into the model
+    num_layers = 2
+
+    def define_model(self, src_vocab, target_vocab, src_timesteps, target_timesteps, hidden_size=100):
         """
          define a simple "naive?" NMT model using LSTM as the RNN Cell Type with no attention mechanism
          with fixed/max sentence length
         :param :src_timesteps: max length of src language sentences
         :param :target_timesteps: max length of targets language sentences
-        :param :n_units: dimensionality of the LSTM layers (more dimensions => more accurate meaning => longer to train => better. After 2k not much improvement) Also often labelled latent_dim ?
+        :param :hidden_size: dimensionality of the LSTM layers (more dimensions => more accurate meaning => longer to train => better.
         :return: A Keras model instance.
         """
-        hidden_size = n_units
-        num_layers = 4
+
         model = Sequential()
-        model.add(Embedding(src_vocab, n_units, input_length=src_timesteps, mask_zero=True))  # builds "thought" mappings
+        model.add(Embedding(src_vocab, hidden_size, input_length=src_timesteps, mask_zero=True))  # builds "thought" mappings
         model.add(LSTM(hidden_size))  # RNN Cell (encoder?) return_state=False by default
         model.add(RepeatVector(target_timesteps))  # Direction of Encoder Input = forward?
-        for _ in range(num_layers):
+        for _ in range(self.num_layers):
            model.add(LSTM(hidden_size, return_sequences=True))  # RNN Cell (decoder?)
-        model.add(TimeDistributed(Dense(target_vocab, activation='softmax')))
-        model.add(Activation('softmax'))
+        model.add(TimeDistributed(Dense(target_vocab, activation='softmax')))  # Dense layer already includes activate
         return model
