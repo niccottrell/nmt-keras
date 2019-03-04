@@ -128,7 +128,7 @@ class Attention3(BaseModel):
             # Prepare checkpoints
             checkpoint = self.get_checkpoint(filename + '.h5')
             logger = CSVLogger(filename + '.csv', separator=',', append=True)
-            earlyStopping = EarlyStopping(patience=2, verbose=1)  # stop training if things are not improving
+            earlyStopping = EarlyStopping(patience=(0.2*epochs), verbose=1)  # stop training if things are not improving
             time_callback = TimeHistory()  # record the time taken to train each epoch
             # Run training
             print("About to fit with batch_size=%d" % self.batch_size)
@@ -198,12 +198,9 @@ class Attention3(BaseModel):
             encoder_states = [state_h_enc, state_c_enc]
             self.encoder_model = Model(encoder_inputs, encoder_states)
 
-            # The input_h and input_c will be double the size when using the Bidirectional wrapper
-            dim = self.latent_dim * 2 if self.bidi else self.latent_dim
-
             decoder_inputs = model.input[1]  # input_2
-            decoder_state_input_h = Input(shape=(dim,), name='dec_input_h')
-            decoder_state_input_c = Input(shape=(dim,), name='dec_input_c')
+            decoder_state_input_h = Input(shape=(self.latent_dim,), name='dec_input_h')
+            decoder_state_input_c = Input(shape=(self.latent_dim,), name='dec_input_c')
             decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
             decoder_lstm = model.layers[3]
             decoder_outputs, state_h_dec, state_c_dec = decoder_lstm(
@@ -332,6 +329,40 @@ class AttentionBidi(Attention3):
     def __init__(self, name, tokenizer, optimizer):
         Attention3.__init__(self, name, tokenizer, optimizer, bidi=True)
 
+    def prep_models(self, model):
+        """
+        Prepare the models from the saved one. This needs to override the default in Attention3 since the model has quite a different structure
+        :param model: The trained encoder model
+        :return: (encoder_model, decoder_model)
+        """
+        if self.encoder_model is None:
+            # Redefine encoder model (needs to work even when the model has just been loaded from an h5 file)
+            # This should work even when the `model` has self.bidi==True
+            encoder_inputs = model.input[0]  # input_1
+            encoder_outputs, forward_h, forward_c, backward_h, backward_c = model.layers[1].output  # bidirectional_1
+            state_h_enc = Concatenate()([forward_h, backward_h])
+            state_c_enc = Concatenate()([forward_c, backward_c])
+            encoder_states = [state_h_enc, state_c_enc]
+            self.encoder_model = Model(encoder_inputs, encoder_states)
+
+            # The input_h and input_c will be double the size when using the Bidirectional wrapper
+            dim = self.latent_dim * 2
+
+            decoder_inputs = model.input[1]  # input_2
+            decoder_state_input_h = Input(shape=(dim,), name='dec_input_h')
+            decoder_state_input_c = Input(shape=(dim,), name='dec_input_c')
+            decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+            decoder_lstm = model.layers[5]
+            decoder_outputs, state_h_dec, state_c_dec = decoder_lstm(
+                decoder_inputs, initial_state=decoder_states_inputs)
+            decoder_states = [state_h_dec, state_c_dec]
+            decoder_dense = model.layers[6]
+            decoder_outputs = decoder_dense(decoder_outputs)
+            self.decoder_model = Model(
+                [decoder_inputs] + decoder_states_inputs,
+                [decoder_outputs] + decoder_states)
+
+        return self.encoder_model, self.decoder_model
 
 if __name__ == '__main__':
     filename = 'attrev_a_adam_' + version
