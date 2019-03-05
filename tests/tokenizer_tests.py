@@ -182,5 +182,10 @@ class TokenizerTests(unittest.TestCase):
         self.assertEqual([['\t', 'the', 'fat', 'cat', '.', '\n']], mark_ends([['the', 'fat', 'cat', '.']]))
 
 
+    def test_post_edit(self):
+        self.assertEqual("The cat sat.", letters.post_edit("the cat sat ."))
+        self.assertEqual("Who sat?", letters.post_edit("Who sat  ?"))
+
+
 if __name__ == '__main__':
     unittest.main()
