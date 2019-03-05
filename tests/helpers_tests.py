@@ -19,5 +19,11 @@ class HelpersTests(unittest.TestCase):
         np.testing.assert_array_equal([1, 2, 3], sequences[0])
         np.testing.assert_array_equal([1, 4, 5], sequences[1])
 
+    def test_is_punct(self):
+        self.assertFalse(is_punct("Dog"))
+        self.assertTrue(is_punct(","))
+        self.assertTrue(is_punct("["))
+        self.assertFalse(is_punct("[Dog]"))
+
 
 

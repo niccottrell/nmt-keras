@@ -113,7 +113,8 @@ def prepare_line(line, lang='en', lc_first=None):
         line = re.sub(r'\'re\s+', ' are ', line)
     line = re.sub(r'\s+', ' ', line)
     # tokenize on space
-    words = line.split(' ')
+    # words = line.split(' ')
+    words = re.split(r'\b', line)  # Works on Python 3.7+
     # lowercase if found in dictionary
     if lc_first == 'lookup':
         idx = 1 if is_punct(words[0]) else 0
@@ -157,7 +158,7 @@ def is_in_dict(word, lang):
 
 
 def is_punct(str):
-    return regex.match(r"\p{P}+", str)
+    return regex.match(r"^\p{P}+$", str)
 
 def lemmatize_verbs(words):
     """Lemmatize verbs in list of tokenized words"""
