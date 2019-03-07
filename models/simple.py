@@ -67,16 +67,16 @@ class Simple(BaseModel):
         trainY = encode_1hot(trainY, self.eng_vocab_size)
         testY = encode_1hot(testY, self.eng_vocab_size)
 
-        self.model = self.define_model(self.other_vocab_size, self.eng_vocab_size, self.other_length, self.eng_length)
-        self.model.compile(optimizer=self.optimizer, loss='categorical_crossentropy')
-
         filename = 'checkpoints/' + self.name
 
         if os.path.isfile(filename):
             # Load the previous model (layers and weights but NO STATE)
-            self.model.load_weights(filename + '.h5')
+            # self.model.load_weights(filename + '.h5')
+            self.model = load_model(filename + '.h5')
         else:
             print("No existing model file found: %s" % filename)
+            self.model = self.define_model(self.other_vocab_size, self.eng_vocab_size, self.other_length, self.eng_length)
+            self.model.compile(optimizer=self.optimizer, loss='categorical_crossentropy')
 
         if not os.path.isfile(filename + '.png'):
             # Plot the model and save it too
