@@ -80,7 +80,6 @@ def create_tokenizer_simple(lines) -> Tokenizer:
     return tokenizer
 
 
-
 re_print = re.compile('[^%s]' % re.escape(string.printable))
 
 regex_endpunct = re.compile(r"([.?,!])")
@@ -114,9 +113,10 @@ def prepare_line(line, lang='en', lc_first=None):
     line = re.sub(r'\s+', ' ', line)
     # tokenize on space
     words = line.split(' ')
+    # words = re.split(r'\b', line)  # Works on Python 3.7+
     # lowercase if found in dictionary
     if lc_first == 'lookup':
-        idx = 1 if is_punct(words[0]) else 0
+        idx = 1 if is_punct(words[0]) and len(words) > 0 else 0
         if is_in_dict(words[idx], lang): words[idx] = words[idx].lower()
     rejoined = ' '.join(words).strip()
     return rejoined
@@ -138,6 +138,7 @@ def built_dict(path):
 dict_en = built_dict('dicts/en.txt')
 dict_sv = built_dict('dicts/sv.txt')
 
+
 def is_in_dict(word, lang):
     """
     :param str word: the word unit
@@ -146,18 +147,19 @@ def is_in_dict(word, lang):
     """
     # path = './hunspell/'
     if lang == 'en':
-      #  hobj = hunspell.HunSpell(path + 'en_US.dic', path + 'en_US.aff')
-      return word.lower() in dict_en
+        #  hobj = hunspell.HunSpell(path + 'en_US.dic', path + 'en_US.aff')
+        return word.lower() in dict_en
     elif lang == 'sv':
-      #  hobj = hunspell.HunSpell(path + 'sv_SE.dic', path + 'sv_SE.aff')
-      return word.lower() in dict_sv
+        #  hobj = hunspell.HunSpell(path + 'sv_SE.dic', path + 'sv_SE.aff')
+        return word.lower() in dict_sv
     else:
-      raise Exception("Do not support language: " + lang)
+        raise Exception("Do not support language: " + lang)
     # return hobj.spell(word)
 
 
 def is_punct(str):
-    return regex.match(r"\p{P}+", str)
+    return regex.match(r"^\p{P}+$", str)
+
 
 def lemmatize_verbs(words):
     """Lemmatize verbs in list of tokenized words"""

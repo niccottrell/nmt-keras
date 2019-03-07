@@ -67,9 +67,14 @@ class BaseTokenizer(object):
         raise Exception('join not implemented')
 
     def post_edit(self, line):
+        # Capitalize sentence
+        line = line[0].upper() + line[1:]
+        # Tidy up concatenations
         line = re.sub(r"\bcan ' t\b", "can't", line)
         line = re.sub(r"(?i)\bdon ' t\b", "don't", line)
         line = re.sub(r" '\s*s\b", "'s", line)
+        # Remove space before final punctuation
+        line = re.sub(r"\s+([.!?])$", r"\1", line)
         return line
 
 
