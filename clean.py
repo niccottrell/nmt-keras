@@ -1,4 +1,5 @@
 import sys
+import getopt
 import nltk
 
 import config
@@ -6,6 +7,7 @@ import config
 nltk.download('punkt', download_dir=config.nltk_data)
 
 from helpers import *
+
 
 # load doc into memory
 def load_doc(filename):
@@ -39,20 +41,27 @@ def clean_pairs(lines, langs):
     # table = str.maketrans('', '', string.punctuation)
     for pair_idx, pair in enumerate(lines):
         clean_pair = list()
-        for idx, sent in enumerate(pair):
-            if (idx > 1): raise Exception("Weird index: %s" % str(pair))
-            lang = langs[idx]
-            joined = clean_line(sent, lang)
-            clean_pair.append(joined)
-        cleaned.append(clean_pair)
-        if (pair_idx % 10 == 0):
-            print('.', end=('\n' if pair_idx % 800 == 0 else ''))  # print a dot for each 10 input lines
+        try:
+            for idx, sent in enumerate(pair):
+                if idx > 1: raise Exception("Weird index: %s" % str(pair))
+                lang = langs[idx]
+                joined = clean_line(sent, lang)
+                clean_pair.append(joined)
+            cleaned.append(clean_pair)
+        except:
+            print("Error processing line: " + "~".join(pair))
+        batch_size = 100
+        if pair_idx % batch_size == 0:
+            print('.',
+                  end=('\n' if pair_idx % (80 * batch_size) == 0 else ''))  # print a dot for each batch of input lines
             sys.stdout.flush()
     return array(cleaned)
+
 
 _intab = "\u201C\u201D\u2018\u2019"
 _outtab = "\"\"''"
 _trantab = str.maketrans(_intab, _outtab)
+
 
 def clean_line(sent, lang):
     # normalize unicode characters
@@ -76,28 +85,57 @@ def clean_line(sent, lang):
     # if (lang == 'sv'): sent = unidecode(sent) # since the POS tagger for Swedish doesn't accept utf8 # unidecode removes ASCII Swedish characters too :(
     # alter language-specific abbreviations etc. [sic]
     sent = prepare_line(sent, lang, 'lookup')
-   # # tokenize more intelligently (TODO should this just use WordPunctTokenizer too?)
-   # tokens = word_tokenize(sent, 'english' if lang == 'en' else 'swedish')
-   # # convert to lowercase
-   # # line = [word.lower() for word in line]
-   # # remove punctuation from each token
-   # # line = [word.translate(table) for word in line]
+    # # tokenize more intelligently (TODO should this just use WordPunctTokenizer too?)
+    # tokens = word_tokenize(sent, 'english' if lang == 'en' else 'swedish')
+    # # convert to lowercase
+    # # line = [word.lower() for word in line]
+    # # remove punctuation from each token
+    # # line = [word.translate(table) for word in line]
     # remove non-ascii chars form each token
     # sent = [re_print.sub('', w) for w in sent]
-   # # remove tokens with non-alphas in them (would remove exclamation, question marks etc.)
-   # # sent = [word for word in sent if word.isalpha()]
-   # # store as string
-   # joined = ' '.join(tokens)
-   # return joined
+    # # remove tokens with non-alphas in them (would remove exclamation, question marks etc.)
+    # # sent = [word for word in sent if word.isalpha()]
+    # # store as string
+    # joined = ' '.join(tokens)
+    # return joined
     return sent
 
 
 if __name__ == '__main__':
+    ## Process arguments
+    source = ''
+    cmd_example = 'clean.py --source (anki|OpenSubtitles)'
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "h", ["source="])
+    except getopt.GetoptError:
+        print(cmd_example)
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print(cmd_example)
+            sys.exit()
+        elif opt in ("--source"):
+            source = arg
     # load dataset
-    filename = lang2 + '.txt'
-    doc = load_doc(filename)
-    # split into language pairs
-    pairs = to_pairs(doc)
+    if source == "anki":
+        filename = lang2 + '.txt'
+        doc = load_doc(filename)
+        # split into language pairs
+        pairs = to_pairs(doc)
+    else:
+        doc_lang1 = load_doc("data/os/OpenSubtitles.en-sv.en")
+        doc_lang2 = load_doc("data/os/OpenSubtitles.en-sv.sv")
+        # Merge into paris
+        print("Merging data files into pairs")
+        lines1 = doc_lang1.strip().split('\n')
+        lines2 = doc_lang2.strip().split('\n')
+        pairs = []
+        for idx, line in enumerate(lines1):
+            line2 = lines2[idx]
+            diff = abs(len(line) - len(line2))
+            score = diff / max(len(line), len(line2))
+            if score < 0.2:
+                pairs.append([line, line2])
     # clean sentences
     clean_pairs = clean_pairs(pairs, ['en', 'sv'])
     # save clean pairs to file

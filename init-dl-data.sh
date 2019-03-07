@@ -7,6 +7,11 @@ mkdir -p checkpoints
 curl -o swe-eng.zip http://www.manythings.org/anki/swe-eng.zip
 unzip swe-eng.zip
 
+mkdir -p data/os
+# curl -L -o data/os/opensubs-en-sv.xml.gz http://opus.nlpl.eu/download.php?f=OpenSubtitles/v2018/xml/en-sv.xml.gz
+curl -L -o data/os/opensubs-en-sv.txt.zip http://opus.nlpl.eu/download.php?f=OpenSubtitles/v2018/moses/en-sv.txt.zip
+unzip data/os/*.zip -d data/os
+
 mkdir -p nltk_data
 curl -o nltk_data/punkt.zip https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/tokenizers/punkt.zip
 curl -o nltk_data/averaged_perceptron_tagger.zip https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/taggers/averaged_perceptron_tagger.zip
