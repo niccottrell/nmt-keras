@@ -34,31 +34,6 @@ def remove_control_characters(s):
     return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
 
 
-def get_filename(subset=None):
-    filename = 'eng-' + lang2
-    if subset is not None:
-        filename += '-' + subset
-    filename += '.pkl'
-    return filename
-
-
-def load_clean_sentences(subset=None):
-    """
-    load a clean dataset
-    :param subset: str
-    :return: ndarray
-    """
-    filename = get_filename(subset)
-    return load(open(filename, 'rb'))
-
-
-# save a list of clean sentences to file
-def save_clean_data(sentences, subset=None):
-    filename = get_filename(subset)
-    dump(sentences, open(filename, 'wb'))
-    print('Saved {0} to {1}'.format(sentences.shape, filename))
-
-
 def create_tokenizer(lines) -> Tokenizer:
     """
     create a tokenizer

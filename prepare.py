@@ -1,21 +1,28 @@
 from numpy.random import shuffle
 
-from helpers import *
+import config
 
-# load dataset
-raw_dataset = load_clean_sentences()
+n_test = 200  # higher values will make evaluation slow
 
-# reduce dataset size
-n_sentences = raw_dataset.shape[0]
-n_test = 200 # higher values will make evaluation slow
-idx_cutoff = n_sentences - n_test
+if config.data.__class__.__name__ == 'Files':
 
-dataset = raw_dataset[:n_sentences, :]
-# random shuffle
-shuffle(dataset)
-# split into train/test
-train, test = dataset[:idx_cutoff], dataset[idx_cutoff:]
-# save
-save_clean_data(dataset, 'both')
-save_clean_data(train, 'train')
-save_clean_data(test, 'test')
+    # load dataset
+    raw_dataset = config.data.load_clean_sentences()
+
+    # reduce dataset size
+    n_sentences = raw_dataset.shape[0]
+    idx_cutoff = n_sentences - n_test
+
+    dataset = raw_dataset[:n_sentences, :]
+    # random shuffle
+    shuffle(dataset)
+    # split into train/test
+    train, test = dataset[:idx_cutoff], dataset[idx_cutoff:]
+    # save
+    config.data.save_clean_data(dataset, 'both')
+    config.data.save_clean_data(train, 'train')
+    config.data.save_clean_data(test, 'test')
+
+else:  # mongodb
+
+    config.data.reset_test_flag(n_test)

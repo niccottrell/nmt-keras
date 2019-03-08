@@ -102,7 +102,7 @@ def clean_line(sent, lang):
 
 
 if __name__ == '__main__':
-    ## Process arguments
+    # Process arguments
     source = ''
     cmd_example = 'clean.py --source (anki|OpenSubtitles)'
     try:
@@ -138,8 +138,8 @@ if __name__ == '__main__':
                 pairs.append([line, line2])
     # clean sentences
     clean_pairs = clean_pairs(pairs, ['en', 'sv'])
-    # save clean pairs to file
-    save_clean_data(clean_pairs)
+    # save clean pairs
+    config.data.save_clean_data(clean_pairs)
     # spot check
     for i in range(100):
         print('[%s] => [%s]' % (clean_pairs[i, 0], clean_pairs[i, 1]))

@@ -11,7 +11,8 @@ from keras.layers import Dense, Embedding, LSTM, RepeatVector, TimeDistributed, 
 from keras.models import Sequential, load_model
 from keras.utils import plot_model
 
-from helpers import load_clean_sentences, lang2, encode_sequences, encode_1hot
+import config
+from helpers import lang2, encode_sequences, encode_1hot
 from models.base import BaseModel, TimeHistory
 from config import batch_size, epochs_default
 
@@ -53,8 +54,8 @@ class Simple(BaseModel):
         print("\n###\nAbout to train model %s with tokenizer %s and optimizer %s\n###\n\n"
               % (self.__class__.__name__, tokenizer.__class__.__name__, self.optimizer))
         # load datasets
-        train = load_clean_sentences('train')
-        test = load_clean_sentences('test')
+        train = config.data.load_clean_sentences('train')
+        test = config.data.load_clean_sentences('test')
 
         print("Prepare training data")
         trainX = encode_sequences(self.other_tokenizer, tokenizer.tokenize(train[:, 1], lang2), self.other_length)

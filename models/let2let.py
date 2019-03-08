@@ -9,7 +9,7 @@ from keras.layers import Input, LSTM, Dense
 from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping
 from keras.utils import plot_model
 
-from config import epochs_default
+from config import epochs_default, data
 from models.base import BaseModel, TimeHistory
 
 import numpy as np
@@ -48,7 +48,7 @@ class Let2Let(BaseModel):
             self.input_characters.add(ch)
             self.target_characters.add(ch)
 
-        lines = load_clean_sentences('both')
+        lines = data.load_clean_sentences('both')
 
         for line in lines:
             input_text = line[1]  # Swedish

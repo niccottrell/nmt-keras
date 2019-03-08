@@ -6,7 +6,7 @@ from evaluate import *
 # load datasets
 from train import matches
 
-full_dataset = load_clean_sentences('both')
+full_dataset = config.data.load_clean_sentences('both')
 grammar_dataset = array([
     # The following examples do not exist in the training or test sets
     ["I eat a sandwich .", "Jag äter en smörgås ."],
