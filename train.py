@@ -70,7 +70,7 @@ def train_all(model_filter=None, token_filter=None, opt_filter=None, epochs=epoc
 
 def summarize_tokenizers():
     # load full dataset
-    dataset = load_clean_sentences('both')
+    dataset = config.data.load_clean_sentences('both')
     for tokenizer_id, tokenizer in tokenizers.items():
         print('Summary of Tokenizer: %s' % tokenizer_id)
         # prepare english tokenizer
@@ -121,5 +121,5 @@ if __name__ == '__main__':
     # train_all(model_filter='attdropout')
     # train_all(model_filter='att')
     # train_all(model_filter='att512')
-    train_all(model_filter='attrev')
+    train_all(model_filter='attbidi', token_filter='a', opt_filter='rmsprop2')
     # train_all(opt_filter='sgd2')

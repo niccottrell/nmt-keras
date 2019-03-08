@@ -7,7 +7,7 @@ import string
 
 import pyphen
 
-from helpers import load_clean_sentences
+import config
 from nltk.tokenize import WordPunctTokenizer
 
 import re  # standard regex system
@@ -294,7 +294,7 @@ class Word2Phrase(SimpleLines):
         self.model['sv'] = self.build_model('sv')
 
     def build_model(self, lang):
-        dataset_both = load_clean_sentences('both')
+        dataset_both = config.data.load_clean_sentences('both')
         # prepare english tokenizer
         lang_idx = 0 if lang == 'en' else 1
         dataset_thislang = dataset_both[:, lang_idx]

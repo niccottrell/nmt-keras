@@ -5,8 +5,9 @@ import time
 import numpy as np
 from keras.callbacks import ModelCheckpoint, Callback
 
+import config
 from config import epochs_default
-from helpers import word_for_id, lang2, create_tokenizer, max_length, load_clean_sentences
+from helpers import word_for_id, lang2, create_tokenizer, max_length
 
 import tokenizers
 
@@ -32,7 +33,7 @@ class BaseModel(object):
         self.optimizer = optimizer
 
         # load datasets
-        dataset = load_clean_sentences( 'both')
+        dataset = config.data.load_clean_sentences( 'both')
 
         print("## " + tokenizer.__class__.__name__)
         print("Prepare English tokenizer")

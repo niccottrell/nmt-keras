@@ -2,6 +2,7 @@ import time
 
 from nltk.translate.bleu_score import corpus_bleu
 
+import config
 import train
 from helpers import *
 from prepare import n_test
@@ -54,7 +55,7 @@ def eval_model(model_obj, verbose=True):
     # load datasets
     # dataset = load_clean_sentences('both')
     # train = load_clean_sentences('train')
-    test = load_clean_sentences('test')
+    test = config.data.load_clean_sentences('test')
     # prepare english tokenizer
     # eng_tokenized = tokenizer_func(dataset[:, 0], 'en')
     # if filename.startswith('dense'): eng_tokenized = mark_ends(eng_tokenized)
@@ -78,7 +79,7 @@ def eval_model(model_obj, verbose=True):
 def evaluate_all(model_filter=None, token_filter=None, opt_filter=None):
     summary = {}
     time_taken = {}
-    test = load_clean_sentences('test')
+    test = config.data.load_clean_sentences('test')
     for model_name, model_class in train.models.items():
         if model_filter is None or model_filter == model_name:
             for token_id, tokenizer in train.tokenizers.items():

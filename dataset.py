@@ -1,10 +1,11 @@
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
-from helpers import load_clean_sentences
+
+import config
 
 # Load sentence lengths (characters)
-raw_dataset = load_clean_sentences()
+raw_dataset = config.data.load_clean_sentences()
 d = []
 for pair in raw_dataset:
     d.append([len(pair[0]), len(pair[1])])
