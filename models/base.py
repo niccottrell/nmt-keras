@@ -3,7 +3,7 @@ import json
 import time
 
 import numpy as np
-from keras.callbacks import ModelCheckpoint, Callback
+from keras.callbacks import ModelCheckpoint, Callback, CSVLogger, EarlyStopping
 
 import config
 from config import epochs_default
@@ -130,6 +130,14 @@ class BaseModel(object):
         self.other_length = max_length(other_tokenized)
         # prepare/encode/pad data (pad to length of target language)
         self.pad_length = self.other_length if self.name.startswith('simple') else None
+
+    def get_callbacks(self, filename, epochs):
+        checkpoint = self.get_checkpoint(filename + '.h5')
+        logger = CSVLogger(filename + '.csv', separator=',', append=True)
+        early_stopping = EarlyStopping(patience=(0.2 * epochs), verbose=1)  # stop training if things are not improving
+        time_callback = TimeHistory()  # record the time taken to train each epoch
+        callbacks = [checkpoint, logger, early_stopping, time_callback]
+        return callbacks, time_callback
 
     @staticmethod
     def post_fit(filename_prefix, history, time_callback):

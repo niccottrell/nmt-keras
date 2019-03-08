@@ -126,17 +126,14 @@ class Attention3(BaseModel):
 
         if epochs > 0:
             # Prepare checkpoints
-            checkpoint = self.get_checkpoint(filename + '.h5')
-            logger = CSVLogger(filename + '.csv', separator=',', append=True)
-            earlyStopping = EarlyStopping(patience=(0.2*epochs), verbose=1)  # stop training if things are not improving
-            time_callback = TimeHistory()  # record the time taken to train each epoch
+            callbacks, time_callback = self.get_callbacks(filename, epochs)
             # Run training
             print("About to fit with batch_size=%d" % self.batch_size)
             history = self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
                                      batch_size=self.batch_size,
                                      epochs=epochs,
                                      validation_split=0.2,
-                                     callbacks=[checkpoint, logger, earlyStopping, time_callback])
+                                     callbacks=callbacks)
             # Print/save history for later analysis
             self.post_fit(filename, history, time_callback)
 
@@ -147,7 +144,7 @@ class Attention3(BaseModel):
         if self.bidi:
             # Bidirectional encoding
             encoder_lstm = Bidirectional(encoder_lstm)
-            encoder_outputs, forward_h, forward_c,  backward_h, backward_c = encoder_lstm(encoder_inputs)
+            encoder_outputs, forward_h, forward_c, backward_h, backward_c = encoder_lstm(encoder_inputs)
             state_h = Concatenate()([forward_h, backward_h])
             state_c = Concatenate()([forward_c, backward_c])
         else:
@@ -296,6 +293,7 @@ class AttentionWithDropout(Attention3):
     """
     Same as Attention3 except with an additional dropout layer
     """
+
     def __init__(self, name, tokenizer, optimizer):
         Attention3.__init__(self, name, tokenizer, optimizer, include_dropout=True)
         self.batch_size = 16  # Lower batch size since it's more complex
@@ -305,6 +303,7 @@ class Attention512(Attention3):
     """
     Same as Attention3 except with double the embedding dimensions
     """
+
     def __init__(self, name, tokenizer, optimizer):
         Attention3.__init__(self, name, tokenizer, optimizer, latent_dim=512)
 
@@ -314,6 +313,7 @@ class AttentionReverse(Attention3):
     Same as Attention3 except the source sequence is reversed during training, and the input sentence tokens needs to be
     reversed also at runtime. This has been shown to ease training and give significantly higher accuracy (Sutskever, 2014)
     """
+
     def __init__(self, name, tokenizer, optimizer):
         Attention3.__init__(self, name, tokenizer, optimizer, reverse_order=True)
 
@@ -363,6 +363,7 @@ class AttentionBidi(Attention3):
                 [decoder_outputs] + decoder_states)
 
         return self.encoder_model, self.decoder_model
+
 
 if __name__ == '__main__':
     filename = 'attrev_a_adam_' + version

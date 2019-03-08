@@ -92,10 +92,7 @@ class Simple(BaseModel):
         print(self.model.summary())
         # plot_model(model, to_file=('checkpoints/' + self.name + '.png'), show_shapes=True)
         print("Fit model")
-        checkpoint = self.get_checkpoint(filename + '.h5')
-        logger = CSVLogger(filename + '.csv', separator=',', append=True)
-        earlyStopping = EarlyStopping(patience=2, verbose=1)
-        time_callback = TimeHistory()  # record the time taken to train each epoch
+        callbacks, time_callback = self.get_callbacks(filename, epochs)
         # the model is saved via a callback checkpoint
         X = trainX
         y = trainY
@@ -104,11 +101,10 @@ class Simple(BaseModel):
         history = self.model.fit(X, y, validation_data=(testX, testY),
                        epochs=epochs,
                        batch_size=batch_size,
-                       callbacks=[checkpoint, logger, earlyStopping, time_callback],
+                       callbacks=callbacks,
                        verbose=1)
         # Print/save history for later analysis
         self.post_fit(filename, history, time_callback)
-
 
 
 class Simple2(Simple):

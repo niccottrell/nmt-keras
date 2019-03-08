@@ -127,16 +127,13 @@ class Let2Let(BaseModel):
 
         if epochs > 0:
             # Prepare checkpoints
-            checkpoint = self.get_checkpoint(filename + '.h5')
-            logger = CSVLogger(filename + '.csv', separator=',', append=True)
-            earlyStopping = EarlyStopping(patience=2, verbose=1)
-            time_callback = TimeHistory()  # record the time taken to train each epoch
+            callbacks, time_callback = self.get_callbacks(filename, epochs)
             # Run training
             history = self.model.fit([self.encoder_input_data, self.decoder_input_data], self.decoder_target_data,
                            batch_size=self.batch_size,
                            epochs=epochs,
                            validation_split=0.2,
-                           callbacks=[checkpoint, logger, earlyStopping, time_callback])
+                           callbacks=callbacks)
             # Save model
             self.post_fit(filename, history,  time_callback)
 
